@@ -17,7 +17,7 @@ jobs:
       env:
         BUILD_SCRIPT:  apt-get update && apt-get -y install ant ant-contrib	autoconf bash	apt-transport-https ca-certificates	dirmngr git	make zip wget
       working-directory: ./openjdk-tests
-      run: ./get.sh -t ./openjdk-tests
+      run: sh ./get.sh -t ./openjdk-tests
    - name: Setup variable
       env:
         BUILD_LIST: openjdk
