@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-TEST_JDK_HOME=""
 getTestKitGen()
 {
 	echo "get testKitGen..."
@@ -20,40 +19,14 @@ getTestKitGen()
 }
 
 
-testJavaVersion()
+getJavaHome()
 {
-# use environment variable TEST_JDK_HOME to run java -version
-if [[ $TEST_JDK_HOME == "" ]]; then
-	TEST_JDK_HOME=$SDKDIR/openjdkbinary/j2sdk-image
-fi
-_java=${TEST_JDK_HOME}/bin/java
-if [ -x ${_java} ]; then
-	echo "Run ${_java} -version"
-	${_java} -version
-else
-	echo "${TEST_JDK_HOME}/bin/java does not exist! Searching under TEST_JDK_HOME: ${TEST_JDK_HOME}..."
-	# Search javac as java may not be unique
-	javac_path=`find ${TEST_JDK_HOME}/ \( -name "javac" -o -name "javac.exe" \)`
-	if [[ $javac_path != "" ]]; then
-		echo "javac_path: ${javac_path}"
-		javac_path_array=(${javac_path//\\n/ })
-		_javac=${javac_path_array[0]}
-
-		# for windows, replace \ to /. Otherwise, readProperties() in Jenkins script cannot read \
-		if [[ "${_javac}" =~ "javac.exe" ]]; then
-			_javac="${_javac//\\//}"
-		fi
-
-		java_dir=$(dirname "${_javac}")
-		echo "Run: ${java_dir}/java -version"
-		${java_dir}/java -version
-		TEST_JDK_HOME=${java_dir}/../
-		echo "TEST_JDK_HOME=${TEST_JDK_HOME}" > ${TESTDIR}/job.properties
-	else
-		echo "Cannot find javac under TEST_JDK_HOME: ${TEST_JDK_HOME}!"
-		exit 1
-	fi
-fi
+	java_path=$(type -p java)
+	suffix="/java"
+	java_root=${java_path%$suffix}
+	java_home=$(dirname $java_root)
+	export JAVA_HOME=$java_home
+	export TEST_JDK_HOME=$JAVA_HOME
 }
 
 runtest()
@@ -65,9 +38,11 @@ runtest()
 }
 
 ls
+pwd
+getJavaHome
 getTestKitGen
 java -version
 export BUILD_LIST=openjdk
-export TEST_JDK_HOME=$TEST_JDK_HOME
-
+#export TEST_JDK_HOME=$TEST_JDK_HOME
+echo "$TEST_JDK_HOME"
 runtest
