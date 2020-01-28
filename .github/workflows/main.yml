@@ -18,8 +18,8 @@ jobs:
       with:
         version: '8'
         architecture: x64
-    - name: test java
-      run: java -version
+    - name: getenva
+      run: printenv
     - name: test JDK
       run: pwd
     - name: Run test
