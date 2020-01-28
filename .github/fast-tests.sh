@@ -15,7 +15,7 @@
 set -e
 
 SDKDIR=""
-TESTDIR=""
+TESTDIR="../"
 PLATFORM=""
 JVMVERSION=""
 SDK_RESOURCE="nightly"
