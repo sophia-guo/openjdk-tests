@@ -15,18 +15,7 @@ jobs:
       uses: actions/checkout@v2
     - name: Environment setup
       run: apt-get update && apt-get -y install ant ant-contrib	autoconf bash apt-transport-https ca-certificates dirmngr git make zip wget
-      working-directory: ./openjdk-tests
-      run: chmod 777 get.sh
-      run: /bin/bash ./get.sh -t ./openjdk-tests
-   - name: Setup variable
-      env:
-        BUILD_LIST: openjdk
-        TEST_JDK_HOME:
-        
-      run: cd TKG
-      
-   - name: compile
-      run: make compile
-   - name: test
-      run: make _jdk_custom
-        echo test, and deploy your project.
+    - name: Get JDK
+      uses: skx/github-action-tester@master
+      with:
+        script: .github/fast-tests.sh
