@@ -18,6 +18,7 @@ jobs:
       with:
         version: '8'
         architecture: x64
+      run: java -version
     - name: test JDK
       run: java -version
       run: pwd
