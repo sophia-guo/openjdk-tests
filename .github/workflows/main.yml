@@ -18,4 +18,4 @@ jobs:
     - name: Get JDK
       uses: skx/github-action-tester@master
       with:
-        script: .github/fast-tests.sh
+        script: .github/fast-tests.sh -t ..
