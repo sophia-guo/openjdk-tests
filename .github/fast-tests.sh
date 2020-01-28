@@ -58,13 +58,15 @@ fi
 
 runtest()
 {
+        ls
 	cd TKG
 	make compile
 	make _jdk_custom
 }
 
+ls
 getTestKitGen
-
+java -version
 export BUILD_LIST=openjdk
 export TEST_JDK_HOME=$TEST_JDK_HOME
 
