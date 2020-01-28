@@ -19,7 +19,7 @@ jobs:
       working-directory: ./openjdk-tests
       run: pwd
       run: chmod 777 get.sh
-      run: "sh get.sh -t openjdk-tests"
+      run: sh get.sh
    - name: Setup variable
       env:
         BUILD_LIST: openjdk
