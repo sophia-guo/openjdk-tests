@@ -148,10 +148,10 @@ parseCommandLineArgs()
 	done
 
         # Adding this check otherwise it starts writing stuff to $HOME
-        if [ -z "$TESTDIR" ]; then
-           echo "-t parameter to set TESTDIR is mandatory"
-           exit 1
-        fi
+#        if [ -z "$TESTDIR" ]; then
+#           echo "-t parameter to set TESTDIR is mandatory"
+#           exit 1
+#        fi
 }
 
 getBinaryOpenjdk()
