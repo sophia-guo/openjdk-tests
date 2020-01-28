@@ -18,9 +18,9 @@ jobs:
       with:
         version: '8'
         architecture: x64
+    - name: test java
       run: java -version
     - name: test JDK
-      run: java -version
       run: pwd
     - name: Run test
       uses: skx/github-action-tester@master
