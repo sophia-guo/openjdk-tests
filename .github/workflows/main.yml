@@ -14,10 +14,10 @@ jobs:
     - name: Environment setup
       run: sudo apt-get update && sudo apt-get -y install ant ant-contrib	autoconf bash apt-transport-https ca-certificates dirmngr git make zip wget
     - name: GetJDK
-      - uses: TheMrMilchmann/install-jdk@v1
-        with:
-          version: '8'
-          architecture: x64
+      uses: TheMrMilchmann/install-jdk@v1
+      with:
+        version: '8'
+        architecture: x64
     - name: Run test
       uses: skx/github-action-tester@master
       with:
