@@ -9,8 +9,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Add lable
-      uses: actions/labeler@v2
     - name: Check out
       uses: actions/checkout@v1
     - name: Environment setup
