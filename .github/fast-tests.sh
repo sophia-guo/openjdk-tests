@@ -14,7 +14,7 @@
 
 set -e
 
-SDKDIR=""
+SDKDIR="$PWD/.."
 TESTDIR="../"
 PLATFORM=""
 JVMVERSION=""
