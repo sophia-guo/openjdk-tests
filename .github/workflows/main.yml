@@ -9,21 +9,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Check out
-      uses: actions/checkout@v1
-    - name: Environment setup
-      run: sudo apt-get update && sudo apt-get -y install ant ant-contrib	autoconf bash apt-transport-https ca-certificates dirmngr git make zip wget
-    - name: Default printenv
-      run: printenv
     - name: GetJDK
       uses: TheMrMilchmann/install-jdk@v1
       with:
         version: '8'
         architecture: x64
-    - name: getenva
-      run: printenv
-    - name: test JDK
-      run: pwd
+    - name:show folder
+      run: ls ${{JAVA_HOME}}
     - name: Run test
       uses: skx/github-action-tester@master
       with:
