@@ -23,13 +23,12 @@ jobs:
     - name: Build test
       run: make compile
       env:
-        Workspace: ${{ env.GITHUB_WORKSPACE }}
         TEST_JDK_HOME: ${{ env.JAVA_HOME }}
         BUILD_LIST: openjdk
-      working-directory: ${{env.GITHUB_WORKSPACE}}/TKG
+      working-directory: ${{ env.GITHUB_WORKSPACE }}/TKG
     - name: run test
       run: make _jdk_custom
       env:
-        TEST_JDK_HOME: ${{JAVA_HOME}}
+        TEST_JDK_HOME: ${{ env.JAVA_HOME}}
         BUILD_LIST: openjdk
-      working-directory: ${{env.GITHUB_WORKSPACE}}/TKG 
+      working-directory: ${{ env.GITHUB_WORKSPACE }}/TKG 
