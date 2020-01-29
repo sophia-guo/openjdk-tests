@@ -31,4 +31,4 @@ jobs:
       env:
         TEST_JDK_HOME: ${{ env.JAVA_HOME}}
         BUILD_LIST: openjdk
-      working-directory: ${{ env.GITHUB_WORKSPACE }}/TKG 
+      working-directory: ./TKG 
