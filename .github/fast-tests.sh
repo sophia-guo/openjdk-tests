@@ -18,10 +18,9 @@ getTestKitGen()
 	git clone https://github.com/AdoptOpenJDK/TKG.git
 }
 
-}
-
 runtest()
 {
+        cd TKG
 	make compile
 	make _jdk_custom
 }
