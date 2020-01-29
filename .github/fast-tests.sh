@@ -18,28 +18,16 @@ getTestKitGen()
 	git clone https://github.com/AdoptOpenJDK/TKG.git
 }
 
-
-getJavaHome()
-{
-	java_path=$(type -p java)
-	suffix="/java"
-	java_root=${java_path%$suffix}
-	java_home=$(dirname $java_root)
-	export JAVA_HOME=$java_home
-	export TEST_JDK_HOME=$JAVA_HOME
 }
 
 runtest()
 {
-        ls
-	cd TKG
 	make compile
 	make _jdk_custom
 }
 
-ls
 pwd
-getJavaHome
+printenv
 getTestKitGen
 java -version
 export BUILD_LIST=openjdk
