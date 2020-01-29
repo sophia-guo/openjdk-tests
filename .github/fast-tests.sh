@@ -28,8 +28,7 @@ runtest()
 pwd
 printenv
 getTestKitGen
-java -version
+echo $JAVA_HOME
 export BUILD_LIST=openjdk
-#export TEST_JDK_HOME=$TEST_JDK_HOME
-echo "$TEST_JDK_HOME"
+export TEST_JDK_HOME=$JAVA_HOME
 runtest
