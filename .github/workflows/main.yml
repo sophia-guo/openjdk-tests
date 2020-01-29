@@ -15,7 +15,7 @@ jobs:
         version: '8'
         architecture: x64
     - name:show folder
-      run: ls ${{JAVA_HOME}}
+      run: ls "${{JAVA_HOME}}"
     - name: Run test
       uses: skx/github-action-tester@master
       with:
