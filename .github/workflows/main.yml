@@ -14,7 +14,7 @@ jobs:
       with:
         version: '8'
         architecture: x64
-    - name:show folder
+    - name: show folder
       run: ls /opt/hostedtoolcache/jdk-8/1.0.0/x64
     - name: Run test
       uses: skx/github-action-tester@master
