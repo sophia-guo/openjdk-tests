@@ -20,7 +20,7 @@ getTestKitGen()
 
 runtest()
 {
-        cd TKG
+    cd TKG
 	make compile
 	make _jdk_custom
 }

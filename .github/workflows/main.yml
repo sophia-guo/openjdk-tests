@@ -1,7 +1,6 @@
-name: CI
+name: script test
 
-on: [push]
-    
+on: pull_request
 
 jobs:
   build:
@@ -18,17 +17,8 @@ jobs:
       with:
         version: '8'
         architecture: x64
-    - name: get TKG
-      run: git clone https://github.com/AdoptOpenJDK/TKG.git
-    - name: Build test
-      run: make compile
-      env:
-        TEST_JDK_HOME: ${{ env.JAVA_HOME }}
-        BUILD_LIST: openjdk
-      working-directory: ./TKG
-    - name: run test
-      run: make _jdk_custom
-      env:
-        TEST_JDK_HOME: ${{ env.JAVA_HOME}}
-        BUILD_LIST: openjdk
-      working-directory: ${{ env.GITHUB_WORKSPACE }}/TKG 
+    - name: Run tests
+      uses: skx/github-action-tester@master 
+      with:
+      script: .github/fast-tests.sh
+
