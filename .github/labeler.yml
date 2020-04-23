@@ -1,0 +1,3 @@
+# Add 'openjdk' to any changes within 'openjdk' folder
+openjdk:
+	- openjdk/*
