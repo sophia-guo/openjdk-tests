@@ -1,0 +1,59 @@
+name: openjdk-test CI
+
+on:
+  push:
+    branches-ignore:
+      - 'dependabot/**'
+    paths-ignore:
+      - '.gitignore'
+      - '*.md'
+      - 'doc/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/*.yml'
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths-ignore:
+      - '.gitignore'
+      - '*.md'
+      - 'doc/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/*.yml'
+jobs:
+  testCI:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-16.04, macos-10.15] #[ubuntu-16.04, macos-10.15, windows-2016]
+        version: [8] #[8, 11, 15]
+        impl: [hotspot] #[hotspot, openj9]
+        build_list: [openjdk] #['openjdk', 'system']
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install Dependencies
+      run: |
+        if ${{ matrix.os == 'macos-10.15' }}; then brew install ant-contrib; else sudo apt-get update && sudo apt-get install ant-contrib -y; fi
+    - uses: AdoptOpenJDK/install-jdk@v1
+      with:
+        version: ${{ matrix.version }}
+        source: 'releases'  #nightly for nightly
+        impl: ${{ matrix.impl }}
+     # ::set-output name={TEST_JDK_HOME}::{env.JAVA_HOME}
+    - name: Get TKG
+      run: ./get.sh
+    - name: Compile
+      run: make compile
+      working-directory: ./TKG
+      env: 
+        BUILD_LIST: ${{ matrix.build_list }}
+        TEST_JDK_HOME : ${{ env.JAVA_HOME }}
+    - name: AQA tests
+      run: make '_sanity.${{ matrix.build_list }}'
+      working-directory: ./TKG
+      env: 
+        TEST_JDK_HOME : ${{ env.JAVA_HOME }}
+    - uses: actions/upload-artifact@v2
+      if: failure()
+      with:
+        name: test_output
+        path: ./**/test_output_*/
