@@ -141,6 +141,7 @@ com/sun/management/OperatingSystemMXBean/GetCommittedVirtualMemorySize.java		htt
 # jdk_math
 
 java/math/BigInteger/LargeValueExceptions.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1051 linux-s390x
+java/math/BigInteger/PrimeTest.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/440 linux-arm
 
 ############################################################################
 
@@ -319,7 +320,8 @@ com/sun/jdi/AllLineLocations.java https://github.com/AdoptOpenJDK/openjdk-tests/
 com/sun/jdi/EarlyReturnTest.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/1737 linux-s390x
 com/sun/jdi/MethodExitReturnValuesTest.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/1737 linux-s390x
 com/sun/jdi/NativeInstanceFilter.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/1737 linux-s390x
-com/sun/jdi/PopAndStepTest.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/1737 linux-s390x
+com/sun/jdi/PopAndStepTest.java math
+https://github.com/AdoptOpenJDK/openjdk-tests/issues/1737 linux-s390x
 com/sun/jdi/PopAsynchronousTest.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/1737 linux-s390x
 com/sun/jdi/PopSynchronousTest.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/1737 linux-s390x
 com/sun/jdi/RedefineCrossStart.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/1737 linux-s390x
