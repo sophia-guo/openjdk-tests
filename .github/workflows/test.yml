@@ -1,0 +1,23 @@
+name: "test windows default"
+on:
+  push:
+jobs:
+  hotspot14:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-2016]
+    steps:
+    - uses: actions/checkout@v2
+    - uses: AdoptOpenJDK/install-jdk@v1
+      with:
+        version: '11'
+        source: 'nightly'
+    - name: AQA
+      uses: sophia-guo/run-aqa@update2
+      with: 
+        version: '11'
+        jdksource: 'install-jdk'
+        build_list: 'openjdk'
+        target: '_jdk_math'
