@@ -14,10 +14,10 @@
 
 source $(dirname "$0")/test_base_functions.sh
 
-if [ -d /java/jre/bin ];then
+if [ -d /opt/java/AdoptOpenjdk/jre/bin ];then
 	echo "Using mounted Java8"
-	export JAVA_BIN=/java/jre/bin
-	export JAVA_HOME=/java
+	export JAVA_BIN=/opt/java/AdoptOpenjdk/jre/bin
+	export JAVA_HOME=/opt/java/AdoptOpenjdk
 	export PATH=$JAVA_BIN:$PATH
 elif [ -d /java/bin ]; then
 	echo "Using mounted Java"
