@@ -107,7 +107,7 @@ def PLATFORM_MAP = [
     ],
     'x86-64_linux' : [
         'SPEC' : 'linux_x86-64_cmprssptrs',
-        'LABEL' : 'ci.role.test&&hw.arch.x86&&sw.os.linux',
+        'LABEL' : 'dynamic',
     ],
     'x86-64_linux_mixed' : [
         'SPEC' : 'linux_x86-64_mxdptrs',
@@ -146,7 +146,7 @@ def PLATFORM_MAP = [
 if ( !params.TARGET ) {
     assert false : "Please provide TARGET value"
 }
-
+def X64Dockeimage = 'adoptopenjdk/centos6_build_image'
 def PLATFORMS = params.PLATFORM.trim().split("\\s*,\\s*");
 def JDK_VERSIONS = params.JDK_VERSION.trim().split("\\s*,\\s*");
 def JDK_IMPLS = params.JDK_IMPL.trim().split("\\s*,\\s*");
@@ -217,28 +217,35 @@ if (JDK_VERSIONS.size() > 1 || JDK_IMPLS.size() > 1 || PLATFORMS.size() >1 || PL
         stage('Queue') {
             def nodes = nodesByLabel(LABEL).size()
             if (nodes < 1) {
-                // If no active node matches the label, we see if there's a timeout value set.
-                // If there is, we wait and check again periodically. If not, we fail immediately.
+                if (LABEL.contains('dynamic')) {
+                    // By default all dynamic agent are offline. If there is more than one cloud provider which one will be chosen first and create the agent? 
+                    // The question here is if it's handled by jenkin or we need to handle it?
+                    LABEL = 'ci.agent.dynamic'
+                }
+                else {
+                    // If no active node matches the label, we see if there's a timeout value set.
+                    // If there is, we wait and check again periodically. If not, we fail immediately.
 
-                boolean didnt_find_node = true
+                    boolean didnt_find_node = true
 
-                if (params.ACTIVE_NODE_TIMEOUT && params.ACTIVE_NODE_TIMEOUT.isInteger()) {
-                    int activeNodeTimeout = params.ACTIVE_NODE_TIMEOUT as Integer
-                    echo "Cannot find an active node matching this label: " + label
-                    echo "Will now wait until " + activeNodeTimeoutString + " minutes (ACTIVE_NODE_TIMEOUT) has passed, re-checking periodically."
-                    while (activeNodeTimeout > 0) {
-                        sleep(60 * 1000) // 1 minute sleep
-                        activeNodeTimeout--
-                        if (nodesByLabel(LABEL).size() > 0) {
-                            didnt_find_node = false
-                            echo "A node matching the aforementioned label has become active."
-                            break;
+                    if (params.ACTIVE_NODE_TIMEOUT && params.ACTIVE_NODE_TIMEOUT.isInteger()) {
+                        int activeNodeTimeout = params.ACTIVE_NODE_TIMEOUT as Integer
+                        echo "Cannot find an active node matching this label: " + label
+                        echo "Will now wait until " + activeNodeTimeoutString + " minutes (ACTIVE_NODE_TIMEOUT) has passed, re-checking periodically."
+                        while (activeNodeTimeout > 0) {
+                            sleep(60 * 1000) // 1 minute sleep
+                            activeNodeTimeout--
+                            if (nodesByLabel(LABEL).size() > 0) {
+                                didnt_find_node = false
+                                echo "A node matching the aforementioned label has become active."
+                                break;
+                            }
                         }
                     }
-                }
 
-                if (didnt_find_node) {
-                    assert false : "Cannot find any machine that matches the LABEL: " + LABEL
+                    if (didnt_find_node) {
+                        assert false : "Cannot find any machine that matches the LABEL: " + LABEL
+                    }
                 }
             }
 
@@ -275,7 +282,15 @@ if (JDK_VERSIONS.size() > 1 || JDK_IMPLS.size() > 1 || PLATFORMS.size() >1 || PL
                     ]
                 }
                 jenkinsfile = load "${WORKSPACE}/openjdk-tests/buildenv/jenkins/JenkinsfileBase"
-                jenkinsfile.testBuild()
+                if (LABEL.contains('ci.agent.dynamic')) {
+                    
+                    docker.image('adoptopenjdk/centos6_build_image').pull()
+                    docker.image('adoptopenjdk/centos6_build_image').inside {
+                        jenkinsfile.testBuild()
+                    }
+                } else {
+                    jenkinsfile.testBuild()
+                }
             }
         }
         jenkinsfile.run_parallel_tests()
