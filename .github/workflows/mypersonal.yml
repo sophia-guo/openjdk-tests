@@ -22,5 +22,5 @@ jobs:
       with: 
         version: '11'
         jdksource: 'install-jdk'
-        build_list: 'functional'
-        target: '_floatSanityTests'
+        build_list: 'openjdk'
+        target: '_jdk_custom'
