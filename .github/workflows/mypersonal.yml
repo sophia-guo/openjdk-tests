@@ -1,0 +1,26 @@
+name: "my personal run-aqa build"
+on:
+  push:
+
+jobs:
+  openjdk: # make sure build/ci work properly
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest] #[ubuntu-latest, macos-latest, windows-2016]
+    steps:
+    - uses: actions/checkout@v1
+    - uses: AdoptOpenJDK/install-jdk@v1
+      with:
+        version: '11'
+        targets: 'JDK_11'
+        impl: 'openj9'
+        source: 'nightly'
+    - name: AQA
+      uses: AdoptOpenJDK/run-aqa@v1
+      with: 
+        version: '11'
+        jdksource: 'install-jdk'
+        build_list: 'functional'
+        target: '_floatSanityTests'
