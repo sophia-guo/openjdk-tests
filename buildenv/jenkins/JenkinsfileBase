@@ -860,10 +860,19 @@ def run_parallel_tests() {
 	if (params.PARALLEL && params.PARALLEL != "None") {
 		stage ("Parallel Tests") {
 			def childJobs = parallel parallel_tests
-			if (params.ACTIVE_NODE_TIMEOUT && params.ACTIVE_NODE_TIMEOUT.isInteger()) {
-				waitForANodeToBecomeActive("$LABEL", params.ACTIVE_NODE_TIMEOUT)
-			} else {
-				waitForANodeToBecomeActive("$LABEL", "0")
+			def nodes = nodesByLabel(LABEL).size()
+			if (nodes < 1) {
+				if (LABEL.contains('dynamic')) {
+					// By default all dynamic agent are offline. If there is more than one cloud provider which one will be chosen first and create the agent? 
+					// The question here is if it's handled by jenkin or we need to handle it?
+					LABEL = 'ci.agent.dynamic'
+				} else {
+					if (params.ACTIVE_NODE_TIMEOUT && params.ACTIVE_NODE_TIMEOUT.isInteger()) {
+						waitForANodeToBecomeActive("$LABEL", params.ACTIVE_NODE_TIMEOUT)
+					} else {
+						waitForANodeToBecomeActive("$LABEL", "0")
+					}
+				}
 			}
 			node("$LABEL") {
 				def buildResult = ""	
@@ -892,27 +901,23 @@ def run_parallel_tests() {
 }
 
 def waitForANodeToBecomeActive(def label, String activeNodeTimeoutString) {
-    def nodes = nodesByLabel(label).size()
-    if (nodes < 1) {
-        // If no active node matches the label, we see if there's a timeout value set.
-        // If there is, we wait and check again periodically. If not, we fail immediately.
+	// If no active node matches the label, we see if there's a timeout value set.
+	// If there is, we wait and check again periodically. If not, we fail immediately.
 
-        int activeNodeTimeout = activeNodeTimeoutString as Integer
+	int activeNodeTimeout = activeNodeTimeoutString as Integer
 
-        echo "Cannot find an active node matching this label: " + label
-        echo "Will now wait until " + activeNodeTimeoutString + " minutes (ACTIVE_NODE_TIMEOUT) has passed, re-checking periodically."
+	echo "Cannot find an active node matching this label: " + label
+	echo "Will now wait until " + activeNodeTimeoutString + " minutes (ACTIVE_NODE_TIMEOUT) has passed, re-checking periodically."
 
-        while (activeNodeTimeout > 0) {
-            sleep(60 * 1000) // 1 minute sleep
-            activeNodeTimeout--
-            if (nodesByLabel(LABEL).size() > 0) {
-                echo "A node matching the aforementioned label has become active."
-                return
-            }
-        }
-
-        assert false : "Timed out waiting for a machine that matches the LABEL: " + LABEL + " to become active."
-    }
+	while (activeNodeTimeout > 0) {
+		sleep(60 * 1000) // 1 minute sleep
+		activeNodeTimeout--
+		if (nodesByLabel(LABEL).size() > 0) {
+			echo "A node matching the aforementioned label has become active."
+			return
+		}
+	}
+	assert false : "Timed out waiting for a machine that matches the LABEL: " + LABEL + " to become active."
 }
 
 def getGitRepoBranch(ownerBranch, defaultOwnerBranch, repo) {
