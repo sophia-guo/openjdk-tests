@@ -108,6 +108,7 @@ def PLATFORM_MAP = [
     'x86-64_linux' : [
         'SPEC' : 'linux_x86-64_cmprssptrs',
         'LABEL' : 'dynamic',
+//        'LABEL' : 'ci.role.test&&hw.arch.x86&&sw.os.linux',
     ],
     'x86-64_linux_mixed' : [
         'SPEC' : 'linux_x86-64_mxdptrs',
@@ -150,6 +151,7 @@ def X64Dockeimage = 'adoptopenjdk/centos6_build_image'
 def PLATFORMS = params.PLATFORM.trim().split("\\s*,\\s*");
 def JDK_VERSIONS = params.JDK_VERSION.trim().split("\\s*,\\s*");
 def JDK_IMPLS = params.JDK_IMPL.trim().split("\\s*,\\s*");
+def CLOUD_PROVIDER = params.CLOUD_PROVIDER ? params.CLOUD_PROVIDER : ""
 
 // if multiple JDK_VERSION / JDK_IMPL / PLATFORM are provided, run test jobs in parallel
 if (JDK_VERSIONS.size() > 1 || JDK_IMPLS.size() > 1 || PLATFORMS.size() >1 || PLATFORMS.contains("all")) {
@@ -217,7 +219,8 @@ if (JDK_VERSIONS.size() > 1 || JDK_IMPLS.size() > 1 || PLATFORMS.size() >1 || PL
         stage('Queue') {
             def nodes = nodesByLabel(LABEL).size()
             if (nodes < 1) {
-                if (LABEL.contains('dynamic')) {
+//                if (LABEL.contains('hw.arch.x86') && LABEL.constains('sw.os.linux') && CLOUD_PROVIDER.contains('azure') ) {
+                if (LABEL.contains('dynamic') && CLOUD_PROVIDER.contains('azure')) {
                     // By default all dynamic agent are offline. If there is more than one cloud provider which one will be chosen first and create the agent? 
                     // The question here is if it's handled by jenkin or we need to handle it?
                     LABEL = 'ci.agent.dynamic'

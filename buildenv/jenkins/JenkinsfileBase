@@ -862,7 +862,7 @@ def run_parallel_tests() {
 			def childJobs = parallel parallel_tests
 			def nodes = nodesByLabel(LABEL).size()
 			if (nodes < 1) {
-				if (LABEL.contains('dynamic')) {
+				if (LABEL.contains('dynamic') && CLOUD_PROVIDER.contains('azure')) {
 					// By default all dynamic agent are offline. If there is more than one cloud provider which one will be chosen first and create the agent? 
 					// The question here is if it's handled by jenkin or we need to handle it?
 					LABEL = 'ci.agent.dynamic'
