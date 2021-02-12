@@ -64,6 +64,5 @@ def main():
     print('::set-output name=build_parameters::{}'.format(json.dumps(args)))
     for key, value in args.items():
         print('::set-output name={}::{}'.format(key, value))
-
 if __name__ == "__main__":
     main()
