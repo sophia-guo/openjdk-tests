@@ -47,7 +47,11 @@ def main():
     parser.add_argument('--target', default=['_jdk_math'], nargs='+')
     parser.add_argument('--platform', default=['x86-64_linux'], nargs='+')
     parser.add_argument('--jdk_version', default=['8'], nargs='+')
+<<<<<<< Upstream, based on upstream/master
     parser.add_argument('--jdk_impl', default=['openj9'], choices=['hotspot', 'openj9'], nargs='+')
+=======
+    parser.add_argument('--jdk_impl', default=['openj9'], nargs='+')
+>>>>>>> 90b5585 Change workflow name to run aqa
     args = parser.parse_args(raw_args)
 
     output = {
