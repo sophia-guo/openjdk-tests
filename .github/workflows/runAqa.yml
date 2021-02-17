@@ -111,6 +111,11 @@ jobs:
           } catch (err) {
             core.setFailed(`Request failed with error ${err}`)
           }
+    - run: ls
+    - name: Print github workspace
+      run: |
+        echo "GITHUB_WORKSPACE = $GITHUB_WORKSPACE"
+        echo "github.workspace = ${{ github.workspace }}"
     - name: AQA
       uses: sophia-guo/run-aqa@PR
       with:
@@ -127,7 +132,6 @@ jobs:
 
   reportStatus:
     runs-on: ubuntu-latest
-    if: always()
     needs: runBuild
     steps:
     - name: Get workflow run info
