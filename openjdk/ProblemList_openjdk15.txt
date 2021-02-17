@@ -25,7 +25,6 @@ java/lang/ClassLoader/nativeLibrary/NativeLibraryTest.java	https://github.com/Ad
 java/lang/String/nativeEncoding/StringPlatformChars.java	https://github.com/AdoptOpenJDK/openjdk-build/issues/248	generic-all
 vm/JniInvocationTest.java	https://github.com/AdoptOpenJDK/openjdk-build/issues/248	macosx-all
 java/lang/reflect/exeCallerAccessTest/CallerAccessTest.java https://github.com/AdoptOpenJDK/openjdk-build/issues/248 generic-all
-java/lang/ProcessBuilder/Basic.java#id0		https://github.com/AdoptOpenJDK/openjdk-tests/issues/1397	aix-all
 java/lang/System/LoggerFinder/modules/JDKLoggerForImageTest.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1267	macosx-all
 java/lang/System/LoggerFinder/modules/LoggerInImageTest.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1267	macosx-all
 java/lang/System/LoggerFinder/modules/NamedLoggerForImageTest.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1267	macosx-all
@@ -55,6 +54,8 @@ java/lang/invoke/VarHandles/VarHandleTestMethodHandleAccessInt.java		https://git
 java/lang/invoke/VarHandles/VarHandleTestMethodHandleAccessLong.java	https://github.com/AdoptOpenJDK/openjdk-infrastructure/issues/1118  linux-aarch64
 java/lang/invoke/VarHandles/VarHandleTestMethodHandleAccessShort.java	https://github.com/AdoptOpenJDK/openjdk-infrastructure/issues/1118  linux-aarch64
 java/lang/invoke/VarHandles/VarHandleTestMethodHandleAccessString.java	https://github.com/AdoptOpenJDK/openjdk-infrastructure/issues/1118	linux-aarch64
+jdk/internal/loader/NativeLibraries/Main.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/1920 generic-all
+java/lang/ProcessBuilder/checkHandles/CheckHandles.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/1920 windows-all
 ############################################################################
 
 # jdk_management
@@ -133,6 +134,10 @@ java/nio/channels/DatagramChannel/PromiscuousIPv6.java	https://github.com/AdoptO
 
 # jdk_security
 
+security/infra/java/security/cert/CertPathValidator/certification/LuxTrustCA.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/2074	generic-all
+security/infra/java/security/cert/CertPathValidator/certification/BuypassCA.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/2074	generic-all
+security/infra/java/security/cert/CertPathValidator/certification/QuoVadisCA.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/2074	generic-all
+security/infra/java/security/cert/CertPathValidator/certification/GlobalSignR6CA.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/2074	generic-all
 ############################################################################
 
 # jdk_sound
@@ -156,7 +161,8 @@ java/nio/channels/DatagramChannel/PromiscuousIPv6.java	https://github.com/AdoptO
 ############################################################################
 
 # jdk_jdi
-
+com/sun/jdi/ProcessAttachTest.java  https://github.com/AdoptOpenJDK/openjdk-infrastructure/issues/1274  macosx-all
+jdk/jfr/jcmd/TestJcmdStartStopDefault.java  https://github.com/AdoptOpenJDK/openjdk-infrastructure/issues/1274  macosx-all
 ############################################################################
 
 # jdk_util
@@ -170,5 +176,12 @@ java/util/concurrent/tck/JSR166TestCase.java	https://github.com/AdoptOpenJDK/ope
 ############################################################################
 
 # jdk_other
+############################################################################
 
+# jdk_foreign
+java/foreign/TestArrays.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1701 generic-all
+java/foreign/TestLayouts.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1701 generic-all
+java/foreign/TestLayoutPaths.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1701	generic-all
+java/foreign/TestNative.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/1920 generic-all
+java/foreign/TestMismatch.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/2016 linux-arm
 ############################################################################

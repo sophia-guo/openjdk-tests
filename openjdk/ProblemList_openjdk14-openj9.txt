@@ -108,6 +108,7 @@ java/lang/invoke/condy/CondyNestedResolutionTest.java	https://github.com/eclipse
 java/lang/invoke/lambda/LambdaStackTrace.java	https://github.com/eclipse/openj9/issues/3394	generic-all
 java/lang/ref/CleanerTest.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1297	generic-all
 java/lang/ref/EarlyTimeout.java	https://github.com/eclipse/openj9/issues/7225	generic-all
+java/lang/ref/FinalizeOverride.java	https://github.com/eclipse/openj9/issues/9651	generic-all
 java/lang/ref/FinalizerHistogramTest.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1297	generic-all
 java/lang/ref/NullQueue.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1297	generic-all
 java/lang/ref/OOMEInReferenceHandler.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1297	generic-all
@@ -148,7 +149,6 @@ sun/management/HotspotThreadMBean/GetInternalThreads.java	https://github.com/Ado
 # jdk_math
 
 java/math/BigInteger/largeMemory/SymmetricRangeTests.java https://bugs.openjdk.java.net/browse/JDK-8241097 generic-all
-java/math/BigInteger/PrimeTest.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/440 linux_arm
 java/math/BigInteger/largeMemory/SymmetricRangeTests.java https://github.com/eclipse/openj9/issues/8728 generic-all
 
 ############################################################################
@@ -228,6 +228,9 @@ java/rmi/server/UnicastServerRef/serialFilter/FilterUSRTest.java	https://github.
 
 # jdk_security
 
+security/infra/java/security/cert/CertPathValidator/certification/LuxTrustCA.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/2074	generic-all
+security/infra/java/security/cert/CertPathValidator/certification/BuypassCA.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/2074	generic-all
+security/infra/java/security/cert/CertPathValidator/certification/QuoVadisCA.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/2074	generic-all
 ############################################################################
 
 # jdk_sound
@@ -288,5 +291,15 @@ sun/net/www/protocol/file/DirPermissionDenied.java https://github.com/AdoptOpenJ
 sun/nio/ch/TestMaxCachedBufferSize.java		https://github.com/eclipse/openj9/issues/5328		generic-all
 
 vm/verifier/VerifyProtectedConstructor.java	https://github.com/eclipse/openj9/issues/7336	generic-all
+
+############################################################################
+
+# jdk_foreign
+java/foreign/TestArrays.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1701 generic-all
+java/foreign/TestLayouts.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1701 generic-all
+java/foreign/TestLayoutPaths.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1701	generic-all
+java/foreign/TestByteBuffer.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1702	generic-all
+java/foreign/TestLayoutConstants.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1702	generic-all
+java/foreign/TestNative.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/1920 generic-all
 
 ############################################################################

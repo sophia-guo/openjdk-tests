@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version='1.0' encoding='UTF-8'?>
 <!--
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,8 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 -->
-<playlist xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:noNamespaceSchemaLocation="../../TKG/playlist.xsd">
+<playlist xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../TKG/playlist.xsd">
 	<test>
 		<testCaseName>dacapo-eclipse</testCaseName>
 		<command>$(JAVA_COMMAND) -jar $(Q)$(TEST_RESROOT)$(D)dacapo.jar$(Q) eclipse; \
@@ -60,7 +59,7 @@
 		<groups>
 			<group>perf</group>
 		</groups>
-	</test> 
+	</test>
 	<test>
 		<testCaseName>dacapo-jython</testCaseName>
 		<command>$(JAVA_COMMAND) -jar $(Q)$(TEST_RESROOT)$(D)dacapo.jar$(Q) jython; \
@@ -72,7 +71,7 @@
 			<group>perf</group>
 		</groups>
 	</test>
-		<test>
+	<test>
 		<testCaseName>dacapo-luindex</testCaseName>
 		<command>$(JAVA_COMMAND) -jar $(Q)$(TEST_RESROOT)$(D)dacapo.jar$(Q) luindex; \
 		$(TEST_STATUS)</command>
@@ -85,6 +84,9 @@
 	</test>
 	<test>
 		<testCaseName>dacapo-lusearch-fix</testCaseName>
+		<disabled>
+			<comment>https://github.com/AdoptOpenJDK/openjdk-tests/issues/1888#issuecomment-755015959</comment>
+		</disabled>
 		<command>$(JAVA_COMMAND) -jar $(Q)$(TEST_RESROOT)$(D)dacapo.jar$(Q) lusearch-fix; \
 		$(TEST_STATUS)</command>
 		<levels>
@@ -118,6 +120,9 @@
 	</test>
 	<test>
 		<testCaseName>dacapo-tomcat</testCaseName>
+		<disabled>
+			<comment>https://bugs.openjdk.java.net/browse/JDK-8155588</comment>
+		</disabled>
 		<command>$(JAVA_COMMAND) -jar $(Q)$(TEST_RESROOT)$(D)dacapo.jar$(Q) tomcat; \
 		$(TEST_STATUS)</command>
 		<levels>
@@ -126,7 +131,6 @@
 		<groups>
 			<group>perf</group>
 		</groups>
-		<disabled>https://bugs.openjdk.java.net/browse/JDK-8155588</disabled>
 	</test>
 	<test>
 		<testCaseName>dacapo-xalan</testCaseName>

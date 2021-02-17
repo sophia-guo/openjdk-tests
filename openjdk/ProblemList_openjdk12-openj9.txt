@@ -169,7 +169,6 @@ sun/management/HotspotThreadMBean/GetInternalThreads.java	https://github.com/Ado
 
 # jdk_math
 
-java/math/BigInteger/PrimeTest.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/440 linux_arm
 
 ############################################################################
 
@@ -272,6 +271,9 @@ java/rmi/transport/runtimeThreadInheritanceLeak/RuntimeThreadInheritanceLeak.jav
 
 # jdk_security
 
+security/infra/java/security/cert/CertPathValidator/certification/LuxTrustCA.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/2074	generic-all
+security/infra/java/security/cert/CertPathValidator/certification/BuypassCA.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/2074	generic-all
+security/infra/java/security/cert/CertPathValidator/certification/QuoVadisCA.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/2074	generic-all
 ############################################################################
 
 # jdk_sound

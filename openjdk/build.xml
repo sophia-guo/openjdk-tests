@@ -24,27 +24,60 @@
 	<property name="DEST" value="${BUILD_ROOT}/openjdk" />
 	<property name="src" location="." />
 	<property environment="env" />
+	<property name="LIB" value="tohandler_simple"/>
+	<import file="${TEST_ROOT}/TKG/scripts/getDependencies.xml"/>
 
 	<target name="getJtreg">
 		<mkdir dir="${DEST}"/>
 		<if>
+			<or>
+				<matches pattern="^[89]{1}$" string="${JDK_VERSION}"/>
+				<matches pattern="^[1][01234]" string="${JDK_VERSION}"/>
+			</or>
+			<then>
+				<property name="jtregTar" value="jtreg-4.2.0-tip.tar"/>
+			</then>
+			<else>
+				<property name="jtregTar" value="jtreg-5.1-b01.tar"/>
+			</else>
+		</if>
+		<if>
 			<not>
-				<available file="jtreg-4.2.0-tip.tar.gz" />
+				<available file="${jtregTar}" />
 			</not>
 			<then>
-				<exec executable="curl" failonerror="true">
-					<arg line="-OLJSks https://ci.adoptopenjdk.net/job/jtreg/lastSuccessfulBuild/artifact/jtreg-4.2.0-tip.tar.gz" />
-				</exec>
+				<if> <available file="custom_jtreg.tar.gz"/>
+					<then>
+						<echo message="Using custom_jtreg.tar.gz"/>
+							<copy file="custom_jtreg.tar.gz" tofile="${jtregTar}.gz"/>
+					</then>
+				<else>
+					<echo message="Getting Jtreg from https://ci.adoptopenjdk.net/job/jtreg/lastSuccessfulBuild/artifact/${jtregTar}.gz"/>
+					<exec executable="curl" failonerror="true">
+						<arg line="--retry 5 -OLJSks https://ci.adoptopenjdk.net/job/jtreg/lastSuccessfulBuild/artifact/${jtregTar}.gz" />
+					</exec>
+				</else>
+				</if>
 				<exec executable="gzip" failonerror="true">
-					<arg line="-d jtreg-4.2.0-tip.tar.gz" />
-				</exec>
-				<exec executable="tar" failonerror="true">
-					<arg line="xf jtreg-4.2.0-tip.tar -C ${DEST}" />
-				</exec>
+					<arg line="-d ${jtregTar}.gz" />				</exec>
 			</then>
 		</if>
+		<if>
+			<contains string="${SPEC}" substring="zos" />
+			<then>
+				<exec executable="tar" failonerror="true">
+					<arg line="xfo ${jtregTar} -C ${DEST}" />
+				</exec>
+			</then>
+		<else>
+			<exec executable="sh" failonerror="true">
+				<arg line="-c 'cat ${jtregTar} | (cd ${DEST} &amp;&amp; tar xof -)'" />
+
+			</exec>
+		</else>
+		</if>
 	</target>
-	
+
 	<target name="getOpenjdk" depends="openjdk-jdk.check" unless="jdkdir.exists">
 		<!-- Windows API limitation of file paths having 260 characters or fewer,
 		     run the config command to allow file paths of 4096 characters 
@@ -53,69 +86,150 @@
 			<contains string="${SPEC}" substring="win" />
 			<then>
 				<exec executable="git" failonerror="false">
-					<arg line="config --system core.longpaths true" />
+					<arg line="config --global core.longpaths true" />
 				</exec>
 			</then>
 		</if>
+		<set-property name="JDK_REPO_ISSET" if-property-isset="env.JDK_REPO" />
+		<set-property name="JDK_BRANCH_ISSET" if-property-isset="env.JDK_BRANCH" />
+		<set-property name="OPENJDK_SHA_ISSET" if-property-isset="env.OPENJDK_SHA" />
 		<if>
-			<contains string="${JVM_VERSION}" substring="openj9"/>
+			<!-- <and>
+				<isset property="env.JDK_REPO"/>
+				<not>
+					<equals arg1="${env.JDK_REPO}" arg2="" />
+				</not>
+				<isset property="env.JDK_BRANCH"/>
+				<not>
+					<equals arg1="${env.JDK_REPO}" arg2="" />
+				</not>
+			</and>
+			-->
+			
+			<!-- <and>
+				<isset property="env.JDK_REPO"/>
+				<isset property="env.JDK_BRANCH"/>
+			</and>
+			-->
+			<and>
+				<isset property="JDK_REPO_ISSET"/>
+				<isset property="JDK_BRANCH_ISSET"/>
+			</and>
 			<then>
+				<echo> Using user specified repo and branch</echo>
 				<if>
-					<equals arg1="${env.ORIGIN_JDK_VERSION}" arg2="next" />
+					<contains string="${SPEC}" substring="zos"/>
 					<then>
-						<property name="jdkName" value="openj9-openjdk-jdk" />
-					</then>					
+						<propertyregex 
+							property="JDK_REPO_SPECIFIC"
+							input="${env.JDK_REPO}"
+							regexp="https://github.ibm.com/"
+							replace="git@github.ibm.com:"
+							defaultValue="${env.JDK_REPO}"/>
+					</then>
 					<else>
-						<property name="jdkName" value="openj9-openjdk-jdk${JDK_VERSION}" />
+						<property name="JDK_REPO_SPECIFIC" value="${env.JDK_REPO}" />
 					</else>
 				</if>
-				<property name="regressionRepo" value="https://github.com/ibmruntimes/${jdkName}.git" />
+				<if>
+					<isset property="OPENJDK_SHA_ISSET"/>
+					<then>
+						<echo message="git clone -q -b ${env.JDK_BRANCH} ${JDK_REPO_SPECIFIC} openjdktemp" />
+						<exec executable="git" failonerror="true">
+							<arg line="clone -q -b ${env.JDK_BRANCH} ${JDK_REPO_SPECIFIC} openjdktemp" />
+						</exec>
+						<exec executable="git" failonerror="true" dir="openjdktemp">
+							<arg line="checkout ${env.OPENJDK_SHA}" />
+						</exec>
+					</then>
+					<else>
+						<echo message="git clone --depth 1 -q -b ${env.JDK_BRANCH} ${JDK_REPO_SPECIFIC} openjdktemp" />
+						<exec executable="git" failonerror="true">
+							<arg line="clone --depth 1 -q -b ${env.JDK_BRANCH} ${JDK_REPO_SPECIFIC} openjdktemp" />
+						</exec>
+					</else>
+				</if>
+				<if>
+					<contains string="${env.JDK_REPO}" substring="corretto"/>
+					<then>
+						<move file="openjdktemp/src" tofile="openjdk-jdk"/>
+						<delete dir="openjdktemp"/>
+					</then>
+					<else>
+						<move file="openjdktemp" tofile="openjdk-jdk"/>
+					</else>
+				</if>
+				<if>
+					<contains string="${env.JDK_REPO}" substring="dragonwell8"/>
+					<then>
+						<exec executable="bash" failonerror="true" dir="openjdk-jdk">
+							<arg line="get_source_dragonwell.sh -s github" />
+						</exec>
+					</then>
+				</if>
 			</then>
 			<else>
 				<if>
-					<and>
-						<contains string="${env.SPEC}" substring="aarch64" />
-						<equals arg1="${JDK_VERSION}" arg2="8" />
-					</and>
-  						<then>
-							<property name="jdkName" value="openjdk-aarch64-jdk8u" />
-  						</then>		
-					<else>
+					<matches string="${JDK_IMPL}" pattern="openj9|ibm" />
+					<then>
 						<if>
-							<or>
-								<equals arg1="${JDK_VERSION}" arg2="8" />
-								<equals arg1="${JDK_VERSION}" arg2="9" />
-								<equals arg1="${JDK_VERSION}" arg2="10" />
-								<equals arg1="${JDK_VERSION}" arg2="11" />
-								<equals arg1="${JDK_VERSION}" arg2="12" />
-								<equals arg1="${JDK_VERSION}" arg2="13" />
-                                                                <equals arg1="${JDK_VERSION}" arg2="14" /> 
-							</or>
+							<equals arg1="${env.ORIGIN_JDK_VERSION}" arg2="next" />
 							<then>
-								<property name="jdkName" value="openjdk-jdk${JDK_VERSION}u" />
+								<property name="jdkName" value="openj9-openjdk-jdk" />
 							</then>
 							<else>
-								<property name="jdkName" value="openjdk-jdk${JDK_VERSION}" />
+								<if> <contains string="${SPEC}" substring="zos"/>
+									<then>
+										<property name="jdkName" value="openj9-openjdk-jdk${JDK_VERSION}-zos" />
+									</then>
+									<else>
+										<property name="jdkName" value="openj9-openjdk-jdk${JDK_VERSION}" />
+									</else>
+								</if>
 							</else>
 						</if>
+						<if>
+							<contains string="${SPEC}" substring="zos"/>
+							<then>
+								<property name="regressionRepo" value="git@github.ibm.com:runtimes/${jdkName}.git" />
+							</then>
+							<else>
+								<property name="regressionRepo" value="https://github.com/ibmruntimes/${jdkName}.git" />
+							</else>
+						</if>
+					</then>
+					<else>
+						<if>
+							<and>
+								<contains string="${env.SPEC}" substring="aarch64" />
+								<equals arg1="${JDK_VERSION}" arg2="8" />
+							</and>
+							<then>
+								<property name="jdkName" value="openjdk-aarch64-jdk8u" />
+							</then>
+							<else>
+								<echo message="git ls-remote -h https://github.com/AdoptOpenJDK/openjdk-jdk${JDK_VERSION}u.git" />
+								<exec executable="git" resultproperty="repo.exist" failonerror="false">
+									<arg line="ls-remote -h https://github.com/AdoptOpenJDK/openjdk-jdk${JDK_VERSION}u.git" />
+								</exec>
+								<if>
+									<equals arg1="${repo.exist}" arg2="0" />
+									<then>
+										<property name="jdkName" value="openjdk-jdk${JDK_VERSION}u" />
+									</then>
+									<else>
+										<property name="jdkName" value="openjdk-jdk${JDK_VERSION}" />
+									</else>
+								</if>
+							</else>
+						</if>
+						<property name="regressionRepo" value="https://github.com/AdoptOpenJDK/${jdkName}.git" />
 					</else>
 				</if>
-				<property name="regressionRepo" value="https://github.com/AdoptOpenJDK/${jdkName}.git" />
-			</else>
-		</if>
-		<if>
-			<isset property="env.RELEASE_TAG"/>
-			<then>
-				<echo message="git clone --depth 1 -q -b ${env.RELEASE_TAG} ${regressionRepo}" />
-				<exec executable="git" failonerror="true">
-					<arg line="clone --depth 1 -q -b ${env.RELEASE_TAG} ${regressionRepo}" />
-				</exec>
-				<move file="${jdkName}" tofile="openjdk-jdk"/>
-			</then>
-			<else>
 				<if>
 					<contains string="${JDK_IMPL}" substring="hotspot"/>
 					<then>
+						<!-- AdoptOpenJDK nighlty is using dev branch and default branch is master-->
 						<property name="defaultBranch" value="-b dev"/>
 					</then>
 					<else>
@@ -123,7 +237,7 @@
 					</else>
 				</if>
 				<if>
-					<isset property="env.OPENJDK_SHA"/>
+					<isset property="OPENJDK_SHA_ISSET"/>
 					<then>
 						<echo message="git clone -q ${defaultBranch} ${regressionRepo}" />
 						<exec executable="git" failonerror="true">
@@ -152,8 +266,20 @@
 			<available file="openjdk-jdk" type="dir"/>
 		</condition>
 	</target>
+
+	<target name="getDependentLibsCheck" >
+		<if>
+			<or>
+				<equals arg1="${JDK_IMPL}" arg2="ibm"  />
+				<equals arg1="${JDK_IMPL}" arg2="openj9" />
+			</or>
+			<then>
+				<antcall target="getDependentLibs"/>
+			</then>
+		</if>
+	</target>
 	
-	<target name="dist" depends="getJtreg, getOpenjdk" description="generate the distribution">
+	<target name="dist" depends="getDependentLibsCheck, getJtreg, getOpenjdk" description="generate the distribution">
 		<copy todir="${DEST}">
 			<fileset dir="${src}" includes="*.xml,ProblemList*.txt,*.mk"/>
 		</copy>

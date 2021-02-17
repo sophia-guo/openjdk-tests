@@ -38,7 +38,8 @@ java/lang/ClassLoader/RecursiveSystemLoader.java	https://github.com/eclipse/open
 java/lang/ClassLoader/nativeLibrary/NativeLibraryTest.java	https://github.com/AdoptOpenJDK/openjdk-build/issues/248	generic-all
 java/lang/Enum/ConstantDirectoryOptimalCapacity.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1297	generic-all
 java/lang/ModuleLayer/BasicLayerTest.java	https://github.com/eclipse/openj9/issues/6462	generic-all
-java/lang/ProcessBuilder/Basic.java#id0		https://github.com/AdoptOpenJDK/openjdk-tests/issues/1397	aix-all
+java/lang/ProcessBuilder/Basic.java#id0		https://github.com/eclipse/openj9/issues/9032	linux-aarch64,aix-all,linux-ppc64le
+java/lang/ProcessBuilder/Basic.java#id1		https://github.com/eclipse/openj9/issues/9032	linux-aarch64,linux-ppc64le
 java/lang/ProcessBuilder/SkipTest.java https://github.com/eclipse/openj9/issues/4124 windows-all
 java/lang/StackTraceElement/PublicConstructor.java	https://github.com/eclipse/openj9/issues/6659	generic-all
 java/lang/StackTraceElement/SerialTest.java	https://github.com/eclipse/openj9/issues/6659	generic-all
@@ -103,19 +104,20 @@ java/lang/invoke/condy/CondyNestedResolutionTest.java	https://github.com/eclipse
 java/lang/invoke/lambda/LambdaStackTrace.java	https://github.com/eclipse/openj9/issues/3394	generic-all
 java/lang/ref/CleanerTest.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1297	generic-all
 java/lang/ref/EarlyTimeout.java	https://github.com/eclipse/openj9/issues/7225	generic-all
+java/lang/ref/FinalizeOverride.java	https://github.com/eclipse/openj9/issues/9651	generic-all
 java/lang/ref/FinalizerHistogramTest.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1297	generic-all
 java/lang/ref/NullQueue.java	https://github.com/eclipse/openj9/issues/7251	generic-all
 java/lang/ref/OOMEInReferenceHandler.java	https://github.com/eclipse/openj9/issues/7251	generic-all
 java/lang/ref/ReachabilityFenceTest.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1297	generic-all
 java/lang/reflect/AccessibleObject/ModuleSetAccessibleTest.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1297	generic-all
 java/lang/reflect/AccessibleObject/TrySetAccessibleTest.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1297	generic-all
-java/lang/reflect/DefaultMethodMembers/FilterNotMostSpecific.java	https://github.com/eclipse/openj9/issues/7623	generic-all
 java/lang/reflect/Nestmates/TestReflectionAPI.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1297	generic-all
 java/lang/reflect/Proxy/ProxyForMethodHandle.java	https://github.com/eclipse/openj9/issues/7741	generic-all
 java/lang/reflect/Proxy/ProxyLayerTest.java	https://github.com/eclipse/openj9/issues/7775	generic-all
 java/lang/reflect/PublicMethods/PublicMethodsTest.java	https://github.com/eclipse/openj9/issues/7897	generic-all
 jdk/modules/etc/DefaultModules.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1267	macosx-all
 jdk/modules/incubator/ImageModules.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1267	macosx-all
+java/lang/ProcessBuilder/checkHandles/CheckHandles.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/1920 windows-all
 
 ############################################################################
 
@@ -140,7 +142,7 @@ sun/management/HotspotThreadMBean/GetInternalThreads.java	https://github.com/Ado
 
 # jdk_math
 
-java/math/BigInteger/PrimeTest.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/440 linux_arm
+java/math/BigInteger/LargeValueExceptions.java	https://github.com/eclipse/openj9/issues/9082	linux-aarch64
 
 ############################################################################
 
@@ -214,6 +216,9 @@ java/rmi/server/UnicastServerRef/serialFilter/FilterUSRTest.java	https://github.
 
 # jdk_security
 
+security/infra/java/security/cert/CertPathValidator/certification/LuxTrustCA.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/2074	generic-all
+security/infra/java/security/cert/CertPathValidator/certification/BuypassCA.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/2074	generic-all
+security/infra/java/security/cert/CertPathValidator/certification/QuoVadisCA.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/2074	generic-all
 ############################################################################
 
 # jdk_sound
@@ -250,12 +255,16 @@ java/util/concurrent/atomic/VMSupportsCS8.java	https://github.com/AdoptOpenJDK/o
 java/util/concurrent/forkjoin/FJExceptionTableLeak.java	https://github.com/eclipse/openj9/issues/3209	generic-all
 java/util/concurrent/locks/Lock/TimedAcquireLeak.java	https://github.com/eclipse/openj9/issues/7125	macosx-all,linux-all,aix-all
 java/util/concurrent/TimeUnit/Basic.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/1665 windows-all
-java/util/logging/CheckZombieLockTest.java	https://bugs.openjdk.java.net/browse/JDK-8148972	macosx-all,linux-all
+java/util/logging/CheckZombieLockTest.java	https://bugs.openjdk.java.net/browse/JDK-8148972	macosx-all,linux-all,windows-x64
+#java/util/logging/CheckZombieLockTest.java on windows https://github.com/eclipse/openj9/issues/9186
 java/util/logging/LogManager/TestLoggerNames.java https://github.com/eclipse/openj9/issues/4561 generic-all
 java/util/logging/TestLoggerWeakRefLeak.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1297	generic-all
 java/util/stream/boottest/java.base/java/util/stream/NodeTest.java https://github.com/eclipse/openj9/issues/4129 macosx-all
 java/util/stream/test/org/openjdk/tests/java/util/SplittableRandomTest.java 	https://github.com/eclipse/openj9/issues/4613 	generic-all
+java/util/stream/test/org/openjdk/tests/java/util/stream/CountLargeTest.java	https://github.com/eclipse/openj9/issues/9040	linux-aarch64
 java/util/stream/test/org/openjdk/tests/java/util/stream/ToArrayOpTest.java	https://github.com/eclipse/openj9/issues/3447	generic-all
+java/util/WeakHashMap/GCDuringIteration.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1297	generic-all
+java/util/zip/ZipFile/TestCleaner.java	https://github.com/eclipse/openj9/issues/8872 	generic-all
 
 ############################################################################
 

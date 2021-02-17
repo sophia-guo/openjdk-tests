@@ -143,19 +143,15 @@ git push origin env_var
 
 This method is to be used when the objective is to set that environment variable for a more generic case.
 
-1.	Open the openj9/test/TKG folder 
+1.	Fork https://github.com/AdoptOpenJDK/TKG  
 
  ![test_config](/doc/diagrams/testConfig.jpg)
  
-2.	Open the testEnv.mk file
+2.	Edit the [testEnv.mk](https://github.com/AdoptOpenJDK/TKG/blob/master/testEnv.mk) file
  
  ![test_env](/doc/diagrams/testEnv.jpg)
  
-3.	Scroll to the bottom of the document 
- 
- ![bottom](/doc/diagrams/bottom.jpg)
- 
-4.	Insert the key word export, followed by your environment variable, without any single or double quotation marks, or spaces
+3.	Insert the key word export, followed by your environment variable, without any single or double quotation marks, or spaces
  
  ![export](/doc/diagrams/otherExport.jpg)
  
@@ -165,24 +161,17 @@ git add --all
 git commit -m "Added TR_Options as an environment variable in testEnv"
 git push origin env_var
 ```
-6.	Go to the Jenkins page, and open up the Grinders
+6.	Go to the Jenkins page, and open up the Grinder_TKG job
 
  ![open_grinders](/doc/diagrams/openGrinders.jpg)
  
 7.	Click “Build with Parameters” on the left side of the page, third down from the top
  
-8.	In the OPENJ9_REPO section, put in the repository you were working from when you made those changes
-  
- ![openj9_repo](/doc/diagrams/openj9Repo.jpg)
- 
-9.	In the OPENJ9_BRANCH section, put in the branch you were on
- 
- ![openj9_branch](/doc/diagrams/openj9Branch.jpg)
- 
-10.	Scroll to the bottom and hit the Build button
+8.	Use your TKG_REPO and TKG_BRANCH where you have made your changes for those parameters instead of the default values
 
- ![build](/doc/diagrams/build.jpg)
- 
+9. 	Scroll to the bottom and hit the Build button
+
+ ![open_grinders](/doc/diagrams/build.jpg)
 
 ## Local testing via make targets on the commandline
 
@@ -314,9 +303,190 @@ _sanity.openjdk done
 Additional test output can be found in the following folders:
 
 ```
-openjdk-tests/test-results/openjdk/TKG/test_output_<timestamp>`
+openjdk-tests/test-results/openjdk/TKG/output_<timestamp>`
 openjdk-tests/test-results/openjdk/work
 openjdk-tests/test-results/openjdk/report
 ```
 
 The JTREG report HTML summary file is then located at `openjdk-tests/test-results/openjdk/report/html/index.html`
+
+## Exclude a test target
+
+#### Automatically exclude a test target
+Instead of having to manually create a PR to disable test targets, they can now be automatically disabled via Github workflow (see autoTestPR.yml). In the issue that describes the test failure, add a comment with the following format:
+
+```auto exclude test <testName>```
+
+If the testName matches the testCaseName defined in ```<testCaseName>``` element of playlist.xml, the entire test suite will be excluded. If the testName is testCaseName followed by _n, only the (n+1)th variation will be excluded. 
+
+For example:
+
+```
+<test>
+  <testCaseName>jdk_test</testCaseName> 
+    <variations>
+      <variation>NoOptions</variation>
+      <variation>-Xmx1024m</variation>
+    </variations>
+    ...
+```
+To exclude the entire suite:
+
+```auto exclude test jdk_test```
+
+To exclude the 2nd variation listed which is assigned suffix_1 ```-Xmx1024m```:
+
+```auto exclude test jdk_test_1```
+
+To exclude the test for openj9 only:
+
+```auto exclude test jdk_test impl=openj9```
+
+To exclude the test for java 8 only:
+
+```auto exclude test jdk_test ver=8```
+
+To exclude the test for all linux platforms:
+
+```auto exclude test jdk_test plat=.*linux.*```
+
+plat is defined in regular expression. All platforms can be found here: https://github.com/AdoptOpenJDK/openjdk-tests/blob/master/buildenv/jenkins/openjdk_tests
+
+To exclude the 2nd variation listed which is assigned suffix_1 ```-Xmx1024m``` against openj9 java 8 on windows only:
+
+```auto exclude test jdk_test_1 impl=openj9 ver=8 plat=.*windows.*```
+
+After the comment is left, there will be a auto PR created with the exclude change in the playlist.xml. The PR will be linked to issue. If the testName can not be found in the repo, no PR will be created and there will be a comment left in the issue linking to the failed workflow run for more details.
+
+#### Manually exclude a test target
+Search the test name to find its playlist.xml file. Add a ```<disabled>``` element after ```<testCaseName>``` element. The ```<disabled>``` element should always contain a ```<comment>``` element to specify the related issue url (or issue comment url).
+
+For example:
+
+```
+<test>
+  <testCaseName>jdk_test</testCaseName> 
+    <disabled>
+      <comment>https://github.com/AdoptOpenJDK/openjdk-tests/issues/123456</comment>
+    </disabled>
+    ...
+```
+
+This will disable the entire test suite. The following section describes how to disable the specific test cases.
+
+##### Exclude a specific test variation:
+Add a ```<variation>``` element in the ```<disabled>``` element to specify the variation. The ```<variation>``` element must match an element defined in the ```<variations>``` element.
+
+For example, to exclude the test case with variation ```-Xmx1024m```:
+
+```
+<test>
+  <testCaseName>jdk_test</testCaseName> 
+    <disabled>
+      <comment>https://github.com/AdoptOpenJDK/openjdk-tests/issues/123456</comment>
+      <variation>-Xmx1024m</variation>
+    </disabled>
+    ...
+    <variations>
+      <variation>NoOptions</variation>
+      <variation>-Xmx1024m</variation>
+    </variations>
+    ...
+```
+
+##### Exclude a test against specific java implementation:
+Add a ```<impl>``` element in the ```<disabled>``` element to specify the implementation.
+
+For example, to exclude the test for openj9 only:
+
+```
+<test>
+  <testCaseName>jdk_test</testCaseName> 
+    <disabled>
+      <comment>https://github.com/AdoptOpenJDK/openjdk-tests/issues/123456</comment>
+      <impl>openj9</impl>
+    </disabled>
+    ...
+```
+
+##### Exclude a test against specific java version:
+Add a ```<subset>``` element in the ```<disabled>``` element to specify the version.
+
+For example, to exclude the test for java 11 and up:
+
+```
+<test>
+  <testCaseName>jdk_test</testCaseName> 
+    <disabled>
+      <comment>https://github.com/AdoptOpenJDK/openjdk-tests/issues/123456</comment>
+      <subset>11+</subset>
+    </disabled>
+    ...
+```
+
+
+##### Exclude a test against specific platform:
+Add a ```<plat>``` element in the ```<disabled>``` element to specify the platform in regular expression. All platforms can be found here: https://github.com/AdoptOpenJDK/openjdk-tests/blob/master/buildenv/jenkins/openjdk_tests
+
+For example, to exclude the test for all linux platforms:
+
+```
+<test>
+  <testCaseName>jdk_test</testCaseName> 
+    <disabled>
+      <comment>https://github.com/AdoptOpenJDK/openjdk-tests/issues/123456</comment>
+      <plat>.*linux.*</plat>
+    </disabled>
+    ...
+```
+
+
+##### Exclude test against multiple criteria:
+Defined a combination of ```<variation>```, ```<impl>```, ```<subset>```, and  ```<plat>``` in the ```<disabled>``` element.
+
+For example, to exclude the test with variation ```-Xmx1024m``` against openj9 java 8 on windows only:
+
+```
+<test>
+  <testCaseName>jdk_test</testCaseName> 
+    <disabled>
+      <comment>https://github.com/AdoptOpenJDK/openjdk-tests/issues/123456</comment>
+      <variation>-Xmx1024m</variation>
+      <subset>8</subset>
+      <impl>openj9</impl>
+      <plat>.*windows.*</plat>
+    </disabled>
+    ...
+```
+
+Note: Same element cannot be defined multiple times inside one ```<disabled>``` element. It is because the elements inside the disable element are in AND relationship.
+
+For example, to exclude test on against hotspot and openj9. It is required to define multiple ```<disabled>``` elements, each with a single ```<impl>``` element inside:
+
+```
+<test>
+  <testCaseName>jdk_test</testCaseName> 
+    <disabled>
+      <comment>https://github.com/AdoptOpenJDK/openjdk-tests/issues/123456</comment>
+      <subset>8</subset>
+      <impl>openj9</impl>
+    </disabled>
+    <disabled>
+      <comment>https://github.com/AdoptOpenJDK/openjdk-tests/issues/123456</comment>
+      <subset>8</subset>
+      <impl>hotspot</impl>
+    </disabled>
+    ...
+```
+
+Or remove ```<impl>``` element to exclude test against all implementations:
+
+```
+<test>
+  <testCaseName>jdk_test</testCaseName> 
+    <disabled>
+      <comment>https://github.com/AdoptOpenJDK/openjdk-tests/issues/123456</comment>
+      <subset>8</subset>
+    </disabled>
+    ...
+```

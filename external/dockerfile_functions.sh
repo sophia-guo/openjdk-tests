@@ -139,7 +139,12 @@ print_debianslim_pkg() {
     local file=$1
     local packages=$2
 
-    print_ubuntu_pkg ${file} "${packages}"
+    # Revert back to calling `print_ubuntu_pkg` once https://github.com/debuerreotype/debuerreotype/issues/10 is resolved
+    echo -e "RUN apt-get update \\" \
+            "\n\t&& for i in \$(seq 1 8); do mkdir -p \"/usr/share/man/man\${i}\"; done \\" \
+            "\n\t&& apt-get install -y --no-install-recommends ${packages} \\" \
+            "\n\t&& rm -rf /var/lib/apt/lists/*" \
+            "\n" >> ${file}
 }
 
 # Select the alpine OS packages.
@@ -179,7 +184,7 @@ print_centos_pkg() {
     local packages=$2
 
     echo -e "RUN yum install -y ${packages} \\" \
-            "\nt&& yum update; yum clean all" \
+            "\n\t&& yum update; yum clean all" \
             "\n" >> ${file}
 }
 
@@ -386,7 +391,7 @@ print_bazel_install() {
 print_java_tool_options() {
     local file=$1
 
-    echo -e "ENV JAVA_TOOL_OPTIONS=\"-Dfile.encoding=UTF8\"\n" >> ${file}
+    echo -e "ENV JAVA_TOOL_OPTIONS=\"-Dfile.encoding=UTF8 -Djava.security.egd=file:/dev/./urandom\"\n" >> ${file}
 }
 
 print_environment_variable() {
@@ -419,7 +424,18 @@ print_test_script() {
     local script=$3
 
     echo -e "# This is the main script to run ${test} tests" \
-            "\nCOPY ${test}/dockerfile/${script} /${script}\n" >> ${file}
+            "\nCOPY ${test}/dockerfile/${script} /${script}" \
+            "\nCOPY test_base_functions.sh test_base_functions.sh\n" >> ${file}
+}
+
+print_testInfo_env() {
+    local test=$1
+    local test_tag=$2
+    local OS=$3
+    echo -e "ENV APPLICATION_NAME=${test}" \
+            "\nENV APPLICATION_TAG=${test_tag}" \
+            "\nENV OS_TAG=${OS}" \
+            "\n" >> ${file}
 }
 
 print_clone_project() {
@@ -544,6 +560,7 @@ generate_dockerfile() {
         print_test_script ${file} ${test} ${script};
     fi
 
+    print_testInfo_env ${test} ${tag_version} ${os}
     print_clone_project ${file} ${test} ${github_url};
     print_entrypoint ${file} ${script} ${os};
 

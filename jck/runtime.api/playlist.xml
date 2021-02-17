@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version='1.0' encoding='UTF-8'?>
 <!--
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,6 +27,21 @@
 		<groups>
 			<group>jck</group>
 		</groups>
+	</test>
+	<test>
+		<testCaseName>jck_target_folder_check</testCaseName>
+		<variations>
+			<variation>NoOptions</variation>
+		</variations>
+		<command>$(TEST_ROOT)$(D)jck$(D)jck_target_folder_check$(D)jck_target_folder_check.sh $(JCK_VERSION) $(JCK_ROOT) $(TEST_ROOT); \
+	$(TEST_STATUS)</command>
+		<levels>
+			<level>special</level>
+		</levels>
+		<groups>
+			<group>jck</group>
+		</groups>
+		<platformRequirements>os.linux,arch.x86,bits.64</platformRequirements>
 	</test>
 	<test>
 		<testCaseName>jck-runtime-api-java_lang-instrument</testCaseName>
@@ -140,7 +155,6 @@
 			<group>jck</group>
 		</groups>
 	</test>
-	
 	<test>
 		<testCaseName>jck-runtime-api-java_lang-ModuleLayer</testCaseName>
 		<variations>
@@ -206,7 +220,7 @@
 			<group>jck</group>
 		</groups>
 		<subsets>
-			<subset>10+</subset>
+			<subset>9+</subset>
 		</subsets>
 	</test>
 	<test>
@@ -222,9 +236,20 @@
 		<groups>
 			<group>jck</group>
 		</groups>
-		<subsets>
-			<subset>10+</subset>
-		</subsets>
+	</test>
+	<test>
+		<testCaseName>jck-runtime-api-java_lang-System</testCaseName>
+		<variations>
+			<variation>NoOptions</variation>
+		</variations>
+		<command>$(JCK_CMD_TEMPLATE) -test-args=$(Q)tests=api/java_lang/System,jckRoot=$(JCK_ROOT),jckversion=$(JCK_VERSION),testsuite=RUNTIME$(Q); \
+	$(TEST_STATUS)</command>
+		<levels>
+			<level>sanity</level>
+		</levels>
+		<groups>
+			<group>jck</group>
+		</groups>
 	</test>
 	<test>
 		<testCaseName>jck-runtime-api-java_lang-constant</testCaseName>
@@ -244,7 +269,7 @@
 		</subsets>
 	</test>
 	<test>
-	<testCaseName>jck-runtime-api-java_lang-Class</testCaseName>
+		<testCaseName>jck-runtime-api-java_lang-Class</testCaseName>
 		<variations>
 			<variation>NoOptions</variation>
 		</variations>
@@ -256,9 +281,6 @@
 		<groups>
 			<group>jck</group>
 		</groups>
-		<subsets>
-			<subset>12+</subset>
-		</subsets>
 	</test>
 	<test>
 		<testCaseName>jck-runtime-api-signaturetest</testCaseName>
@@ -275,7 +297,7 @@
 		<groups>
 			<group>jck</group>
 		</groups>
-	</test>	
+	</test>
 	<test>
 		<testCaseName>jck-runtime-api-modulegraph</testCaseName>
 		<variations>
@@ -306,9 +328,6 @@
 		<groups>
 			<group>jck</group>
 		</groups>
-		<subsets>
-			<subset>9+</subset>
-		</subsets>
 	</test>
 	<test>
 		<testCaseName>jck-runtime-api-javax_naming-spi</testCaseName>
@@ -325,9 +344,6 @@
 		<groups>
 			<group>jck</group>
 		</groups>
-		<subsets>
-			<subset>9+</subset>
-		</subsets>
 	</test>
 	<test>
 		<testCaseName>jck-runtime-api-java_util-ResourceBundle</testCaseName>
@@ -342,9 +358,6 @@
 		<groups>
 			<group>jck</group>
 		</groups>
-		<subsets>
-			<subset>10+</subset>
-		</subsets>
 	</test>
 	<test>
 		<testCaseName>jck-runtime-api-java_applet</testCaseName>
@@ -486,7 +499,7 @@
 			<group>jck</group>
 		</groups>
 	</test>
-		<test>
+	<test>
 		<testCaseName>jck-runtime-api-java_sql</testCaseName>
 		<variations>
 			<variation>NoOptions</variation>
@@ -772,7 +785,7 @@
 			<group>jck</group>
 		</groups>
 	</test>
-		<test>
+	<test>
 		<testCaseName>jck-runtime-api-javax_swing</testCaseName>
 		<variations>
 			<variation>NoOptions</variation>
@@ -815,6 +828,7 @@
 		</groups>
 		<subsets>
 			<subset>8</subset>
+			<subset>15+</subset>
 		</subsets>
 	</test>
 	<test>

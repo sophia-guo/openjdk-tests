@@ -12,6 +12,8 @@
 # limitations under the License.
 #
 
+source $(dirname "$0")/test_base_functions.sh
+
 if [ -d /java/jre/bin ];then
 	echo "Using mounted Java8"
 	export JAVA_BIN=/java/jre/bin
@@ -32,9 +34,12 @@ else
 	export JAVA_HOME="${java_root%/bin}"
 fi
 
-java -version
+echo_setup
+
 TEST_OPTIONS=$1
 cd ${THORNTAIL_HOME}/
+
+export OPENJ9_JAVA_OPTIONS="-Xmx1g"
 
 #Build Thorntail 
 cd ${THORNTAIL_HOME}/thorntail/ 

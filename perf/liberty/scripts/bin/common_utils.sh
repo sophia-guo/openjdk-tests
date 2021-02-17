@@ -99,7 +99,12 @@ checkAndSetCommonEnvVars()
 
     if [ -z "$JDK_OPTIONS" ]; then
         echo "JDK_OPTIONS not set"
-        exit
+        #exit
+    fi
+   
+    if [ ! -z "$CPU_AFFINITY" ]; then
+    	export AFFINITY=${CPU_AFFINITY}
+    	echo "AFFINITY set to ${CPU_AFFINITY}"
     fi
 
     #warn about no affinity, but continue anyway
@@ -113,37 +118,16 @@ checkAndSetCommonEnvVars()
                 ;;
             *)
                 echo "!!! WARNING !!! AFFINITY not set"
-                usage
+                #usage
                 #exit
                 ;;
         esac
     fi
     
     if [ ! -z "$PROFILING_TOOL" ]; then
-    
-	    if [ -z "$PROFILING_JAVA_OPTION" ]; then
-	        echo "Optional PROFILING_JAVA_OPTION not set."
-			
-			if [[ "${PROFILING_TOOL}" = jprof* ]]; then			  
-			  export PROFILE_TYPE=$(awk -F " " '{print $2}' <<< ${PROFILING_TOOL})
-			  echo "PROFILE_TYPE:${PROFILE_TYPE}"
-			  PROFILING_JAVA_OPTION="-agentlib:jprof=${PROFILE_TYPE},logpath=${BENCHMARK_DIR}/tmp"
-			elif [[ "${PROFILING_TOOL}" = perf* ]]; then
-		 	  PROFILING_JAVA_OPTION="-Xjit:perfTool"
-			fi   	        
-	        echo "PROFILING_JAVA_OPTION=${PROFILING_JAVA_OPTION}"
-	    else
-	    	echo "Optional PROFILING_JAVA_OPTION is set to ${PROFILING_JAVA_OPTION}"
-	        
-	        # If there are multiple logpaths, then the last one takes effect. 
-	        # We append this logpath so that we know where to copy the files from 
-	        # and use them for archiving so that they can be viewed later.
-	        if [[ "${PROFILING_TOOL}" = jprof* ]]; then
-		        echo "Appending ',logpath=${BENCHMARK_DIR}/tmp' to PROFILING_JAVA_OPTION"
-		        PROFILING_JAVA_OPTION=${PROFILING_JAVA_OPTION}+",logpath=${BENCHMARK_DIR}/tmp"
-		        echo "PROFILING_JAVA_OPTION:${PROFILING_JAVA_OPTION}"
-	        fi
-	    fi
+        . ${BENCHMARK_DIR}/resource/client_scripts/profile.sh
+        echo "Setting profiling options"
+        setProfilingOptions ${BENCHMARK_DIR}/tmp
     fi
 	
     if [ -z "$LAUNCH_SCRIPT" ]; then
@@ -187,7 +171,7 @@ checkAndSetCommonEnvVars()
 
     # Handle only dt3 for now
     if [ -z "$APP_VERSION" ]; then
-        if [[ "${SCENARIO}" = DayTrader* ]] && [[ ! "${SCENARIO}" = DayTrader7 ]]; then
+        if [[ "${SCENARIO}" = DayTrader* ]] && [[ ! "${SCENARIO}" = DayTrader7* ]]; then
             echo "Daytrader 3 Application Version not set. Setting to daytrader3.0.10.1-ee6-src"
             APP_VERSION="daytrader3.0.10.1-ee6-src"
         fi
@@ -359,10 +343,10 @@ platformSpecificSetup()
         echo "CLIENT = $CLIENT"
         echo "DB_MACHINE = $DB_MACHINE"
         echo "LIBERTY_HOST = $LIBERTY_HOST"
-        CLIENT=`nslookup $CLIENT | grep Address | tail -n 1 | cut -d' ' -f3`
-        DB_MACHINE=`nslookup $DB_MACHINE | grep Address | tail -n 1 | cut -d' ' -f3`
-        LIBERTY_HOST=`nslookup $LIBERTY_HOST | grep Address | tail -n 1 | cut -d' ' -f3`
-        RESULTS_MACHINE=`nslookup $RESULTS_MACHINE | grep Address | tail -n 1 | cut -d' ' -f3`
+        CLIENT=`nslookup $CLIENT | grep Address | tail -1 | cut -d' ' -f3`
+        DB_MACHINE=`nslookup $DB_MACHINE | grep Address | tail -1 | cut -d' ' -f3`
+        LIBERTY_HOST=`nslookup $LIBERTY_HOST | grep Address | tail -1 | cut -d' ' -f3`
+        RESULTS_MACHINE=`nslookup $RESULTS_MACHINE | grep Address | tail -1 | cut -d' ' -f3`
         echo "CLIENT = $CLIENT"
         echo "DB_MACHINE = $DB_MACHINE"
         echo "LIBERTY_HOST = $LIBERTY_HOST"
@@ -661,20 +645,20 @@ calculateFootprint()
   # add footprint collection to end of Liberty throughput - this is a cut+paste from sufpdt.sh
   case ${PLATFORM} in
     CYGWIN)
-      # FULL_MEM=`pslist -m ${WINDOWS_PID} | tail -n 2`
+      # FULL_MEM=`pslist -m ${WINDOWS_PID} | tail -2`
       # echo "${FULL_MEM}"
       # uncomment this line if reporting on pslist throughput
-      # FOOTPRINT=`echo "${FULL_MEM}" | tail -n 1 | awk '{ print $4 }'`
+      # FOOTPRINT=`echo "${FULL_MEM}" | tail -1 | awk '{ print $4 }'`
       if [ -z ${WINDOWS_PID} ]; then
         echo "No windows PID - not running footprint tool"
       else
         echo "vmmap output:"
         vmmap -64 -PID ${WINDOWS_PID} vmmap.out
-        local VMMAP_MEM=`head -n 15 vmmap.out`
+        local VMMAP_MEM=`head -15 vmmap.out`
         echo "${VMMAP_MEM}"
         rm vmmap.out
         
-        local FOOTPRINT=`echo "${VMMAP_MEM}" | head -n 5 | tail -n 1 | awk '{print $5}' | sed "s/,//g"`
+        local FOOTPRINT=`echo "${VMMAP_MEM}" | head -5 | tail -1 | awk '{print $5}' | sed "s/,//g"`
         
         echo ""
 
@@ -687,10 +671,10 @@ calculateFootprint()
           do
             local tmpWINDOWS_PID=`ps -W | grep java | grep ${PID} | grep -v grep | awk '{ print $4 }'`
             vmmap -64 -PID ${tmpWINDOWS_PID} tmpvmmap.out
-            local tmpVMMAP_MEM=`head -n 15 tmpvmmap.out`
+            local tmpVMMAP_MEM=`head -15 tmpvmmap.out`
             echo "${tmpVMMAP_MEM}"
             rm tmpvmmap.out
-            local tmpFOOTPRINT=`echo "${VMMAP_MEM}" | head -n 5 | tail -n 1 | awk '{print $5}' | sed "s/,//"`
+            local tmpFOOTPRINT=`echo "${VMMAP_MEM}" | head -5 | tail -1 | awk '{print $5}' | sed "s/,//"`
             local tmpProcName=`ps -W |grep ${PID}| grep -v 'grep'|grep -v 'ws-server.jar'`
           
             #some logic should go here
@@ -735,8 +719,8 @@ calculateFootprint()
       # now find the footprint figure from the awk output
       local FOOTPRINT=`awk '/JTC footprint/ { print $8 }' footprintAwk.tmp`
       # TODO: Once verified, remove variables not used
-      #local free=`vmstat -l | sed -e 's/  */ /g' |tr ' ' '\n' | tail -n 1 | tail -c 10`
-      #active=`vmstat -l | sed -e 's/  */ /g' |tr ' ' '\n' | tail -n 2 | head -n 1| tail -c 10`
+      #local free=`vmstat -l | sed -e 's/  */ /g' |tr ' ' '\n' | tail -1 | tail -c 10`
+      #active=`vmstat -l | sed -e 's/  */ /g' |tr ' ' '\n' | tail -2 | head -1| tail -c 10`
       
       if [ "$SCENARIO" = "Cognos" ]; then
         local running_total=$FOOTPRINT
@@ -753,7 +737,7 @@ calculateFootprint()
           cat footprintAwk.tmp >> ${BENCHMARK_DIR}/tmp/${PID}.footprint.out
           local tmpFOOTPRINT=`awk '/JTC footprint/ { print $8 }' footprintAwk.tmp`
           # TODO: Once verified, remove variables not used
-          # local tmpfree=`vmstat -l | sed -e 's/  */ /g' |tr ' ' '\n' | tail -n 1 | tail -c 10`
+          # local tmpfree=`vmstat -l | sed -e 's/  */ /g' |tr ' ' '\n' | tail -1 | tail -c 10`
           #ps -ef -o pid,comm,args| grep ${PID} | grep -v 'grep'
           local tmpProcName=`ps -ef -o pid,comm,args |grep ${PID}| grep -v 'grep'|grep -v 'ws-server.jar'`
         
@@ -821,11 +805,11 @@ calculateFootprint()
       ;;
 
     *)
-      local FOOTPRINT=`ps -p ${SERVER_PID} -o rss,vsz,comm,pid | tail -n 1 | awk '{ print $1 }'`
-      local HPTOTAL=`cat /proc/meminfo | grep ^HugePages_Total | sed 's/HugePages.*: *//g' | head -n 1`
-      local HPFREE=`cat /proc/meminfo | grep ^HugePages_Free | sed 's/HugePages.*: *//g' | head -n 2 | tail -n 1`
+      local FOOTPRINT=`ps -p ${SERVER_PID} -o rss,vsz,comm,pid | tail -1 | awk '{ print $1 }'`
+      local HPTOTAL=`cat /proc/meminfo | grep ^HugePages_Total | sed 's/HugePages.*: *//g' | head -1`
+      local HPFREE=`cat /proc/meminfo | grep ^HugePages_Free | sed 's/HugePages.*: *//g' | head -2 | tail -1`
       # Once verified, confirm that HPRESVD is not used anywhere
-      local HPRESVD=`cat /proc/meminfo | grep ^HugePages_Rsvd | sed 's/HugePages.*: *//g' | head -n 3 | tail -n 1`
+      local HPRESVD=`cat /proc/meminfo | grep ^HugePages_Rsvd | sed 's/HugePages.*: *//g' | head -3 | tail -1`
       local HPINUSE
       let HPINUSE=$HPTOTAL-$HPFREE-$HPPREINUSE
       echo "HPs in use by liberty: "${HPINUSE}
@@ -839,7 +823,7 @@ calculateFootprint()
         local Other_PIDS=`ps -o pid,comm,args |grep 'jre/bin/java'|grep -v 'grep'| grep -v 'ws-server.jar'|awk '{print $1}'`
         for PID in $Other_PIDS
         do
-          local tmpFOOTPRINT=`ps -p ${PID} -o rss,vsz,comm,pid | tail -n 1 | awk '{ print $1 }'`
+          local tmpFOOTPRINT=`ps -p ${PID} -o rss,vsz,comm,pid | tail -1 | awk '{ print $1 }'`
           #ps -o pid,comm,args| grep ${PID} | grep -v 'grep'
           local tmpProcName=`ps -o pid,comm,args |grep ${PID}| grep -v 'grep'|grep -v 'ws-server.jar'`
           #some logic should go here
@@ -970,8 +954,8 @@ getPreBenchmarkHugePagesInUse()
 "
   case ${PLATFORM} in
     Linux)
-      local HPPRETOTAL=`cat /proc/meminfo | grep HugePages_Total | sed 's/HugePages.*: *//g' | head -n 1`
-      local HPPREFREE=`cat /proc/meminfo | grep HugePages_Free | sed 's/HugePages.*: *//g' | head -n 2|tail -n 1`
+      local HPPRETOTAL=`cat /proc/meminfo | grep HugePages_Total | sed 's/HugePages.*: *//g' | head -1`
+      local HPPREFREE=`cat /proc/meminfo | grep HugePages_Free | sed 's/HugePages.*: *//g' | head -2 | tail -1`
       let HPPREINUSE=$HPPRETOTAL-$HPPREFREE
       echo "HP IN USE : " ${HPPREINUSE}
       ;;
@@ -1206,20 +1190,24 @@ copyResultsToRemoteMachine()
   # create results dir on the results machine (if exists, staf stil returns success)
   local FULL_REMOTE_DIR=${ROOT_RESULTS_DIR}/${SCENARIO}/${LIBERTY_HOST}/${JDK}/${RUN_DATE}/${RUN_ID}
 
-  echoAndRunCmd "STAF ${RESULTS_MACHINE} FS CREATE DIRECTORY ${FULL_REMOTE_DIR} FULLPATH"
-  #ssh ${RESULTS_MACHINE_USER}@${RESULTS_MACHINE} "${FULL_REMOTE_DIR}"
-
+  STAF_CMD="STAF ${RESULTS_MACHINE} FS CREATE DIRECTORY ${FULL_REMOTE_DIR} FULLPATH"
+  SSH_CMD="ssh ${RESULTS_MACHINE_USER}@${RESULTS_MACHINE} mkdir -p ${FULL_REMOTE_DIR}"
+  LOCAL_CMD="mkdir -p ${FULL_REMOTE_DIR}"
+  runNetProtocolCmd -alwaysEcho
 
   # copy the files to the results machine - while the staf command says copy directory, it copies the 
   #	files in the directory, not the directory itself, into the todirectory location
   
   if [ -f ${DIR}/results.zip ]; then
-      echoAndRunCmd "STAF local FS COPY FILE ${DIR}/results.zip TODIRECTORY ${FULL_REMOTE_DIR} TOMACHINE ${RESULTS_MACHINE}"
-      #scp ${DIR}/results.zip ${RESULTS_MACHINE_USER}@${RESULTS_MACHINE}:${FULL_REMOTE_DIR}
-
+      STAF_CMD="STAF local FS COPY FILE ${DIR}/results.zip TODIRECTORY ${FULL_REMOTE_DIR} TOMACHINE ${RESULTS_MACHINE}"
+      SSH_CMD="scp ${DIR}/results.zip ${RESULTS_MACHINE_USER}@${RESULTS_MACHINE}:${FULL_REMOTE_DIR}"
+      LOCAL_CMD="cp ${DIR}/results.zip ${FULL_REMOTE_DIR}"
+      runNetProtocolCmd -alwaysEcho
     elif [ -d $DIR ]; then
-      echoAndRunCmd "STAF local FS COPY DIRECTORY ${DIR} TODIRECTORY ${FULL_REMOTE_DIR} TOMACHINE ${RESULTS_MACHINE} RECURSE"
-      #scp -r ${DIR} ${RESULTS_MACHINE_USER}@${RESULTS_MACHINE}:${FULL_REMOTE_DIR}
+      STAF_CMD="STAF local FS COPY DIRECTORY ${DIR} TODIRECTORY ${FULL_REMOTE_DIR} TOMACHINE ${RESULTS_MACHINE} RECURSE"
+      SSH_CMD="scp -r ${DIR} ${RESULTS_MACHINE_USER}@${RESULTS_MACHINE}:${FULL_REMOTE_DIR}"
+      LOCAL_CMD="cp -r ${DIR} ${FULL_REMOTE_DIR}"
+      runNetProtocolCmd -alwaysEcho
   fi
 
   echo ""
@@ -1585,16 +1573,7 @@ getRunningServerPID()
     CYGWIN)
       local PS_VERSION=`ps --version|grep cygwin|awk {'print $3'}`
       echo "PS version is ${PS_VERSION}"
-      #PS changed returning Cygwin PID & Windows PID on same line sometime between 1.1.1 and 1.7.32
-      if [ "$PS_VERSION" = "1.1.1" ]; then
-        WINDOWS_PID=`ps -W | grep java | grep ${SERVER_PID} | grep -v grep | awk '{ print $4 }'`
-      else
-        local WINDOWS_CMD=`ps -W | grep java | grep ${SERVER_PID}| grep -v grep | awk '{ print $8 }'`
-        #Get server command for Cygwin process (rather than assuming there's only one JVM running)
-        WINDOWS_CMD=`cygpath -w ${WINDOWS_CMD}|sed 's|\\\|\\\\\\\\|g'`
-        #Get the Windows path, and pad with extra \'s so grep can use it....
-        WINDOWS_PID=`ps -W | grep java|grep "${WINDOWS_CMD}" |awk {'print $4'}`
-      fi	
+      WINDOWS_PID=`ps -W | grep java | grep ${SERVER_PID} | grep -v grep | awk '{ print $4 }'`
       echo "WINDOWS_PID=${WINDOWS_PID}"
       ;;
     *)

@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version='1.0' encoding='UTF-8'?>
 <!--
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -12,10 +12,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 -->
-
 <playlist xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="../../../TestConfig/playlist.xsd">
 	<test>
-		<testCaseName>MBCS_Tests_charsets</testCaseName>
+		<testCaseName>MBCS_Tests_charsets8</testCaseName>
 		<variations>
 			<variation>NoOptions</variation>
 		</variations>
@@ -29,5 +28,28 @@ limitations under the License.
 		<groups>
 			<group>functional</group>
 		</groups>
+		<subsets>
+			<subset>8</subset>
+		</subsets>
+	</test>
+	<test>
+		<testCaseName>MBCS_Tests_charsets</testCaseName>
+		<variations>
+			<variation>NoOptions</variation>
+		</variations>
+		<command>$(JAVA_COMMAND) $(JVM_OPTIONS) \
+	--add-opens java.base/sun.nio.cs=ALL-UNNAMED \
+	-cp $(Q)$(TEST_RESROOT)$(D)charsets.jar$(Q) \
+	CharsetsTest; \
+	$(TEST_STATUS)</command>
+		<levels>
+			<level>special</level>
+		</levels>
+		<groups>
+			<group>functional</group>
+		</groups>
+		<subsets>
+			<subset>11+</subset>
+		</subsets>
 	</test>
 </playlist>

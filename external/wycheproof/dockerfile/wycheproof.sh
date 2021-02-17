@@ -12,6 +12,8 @@
 # limitations under the License.
 #
 
+source $(dirname "$0")/test_base_functions.sh
+
 if [ -d /java/jre/bin ];then
 	echo "Using mounted Java8"
 	export JAVA_BIN=/java/jre/bin
@@ -32,7 +34,7 @@ else
 	export JAVA_HOME="${java_root%/bin}"
 fi
 
-java -version
+echo_setup
 
 #Run tests 
 
@@ -46,6 +48,6 @@ bazel test BouncyCastleTest --genrule_strategy=standalone --spawn_strategy=stand
 BouncyCastle_exit_code=$?
 find /root/.cache -type d -name 'testlogs' -exec cp -r "{}" /testResults \;
 
-if [ "$(( OpenJDKTest_exit_code + BouncyCastle_exit_cod ))" -gt 0 ] {
+if [ "$(( OpenJDKTest_exit_code + BouncyCastle_exit_code ))" -gt 0 ]; then
 	exit 1
-}
+fi

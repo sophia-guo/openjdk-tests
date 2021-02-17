@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version='1.0' encoding='UTF-8'?>
 <!--
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,6 +30,9 @@
 	</test>
 	<test>
 		<testCaseName>jck-runtime-vm-jdwp</testCaseName>
+		<disabled>
+			<comment>https://github.com/AdoptOpenJDK/openjdk-tests/issues/1330</comment>
+		</disabled>
 		<variations>
 			<variation>NoOptions</variation>
 		</variations>
@@ -41,7 +44,6 @@
 		<groups>
 			<group>jck</group>
 		</groups>
-		<disabled>https://github.com/AdoptOpenJDK/openjdk-tests/issues/1330</disabled>
 	</test>
 	<test>
 		<testCaseName>jck-runtime-vm-jvmti</testCaseName>
@@ -56,27 +58,6 @@
 		<groups>
 			<group>jck</group>
 		</groups>
-		<impls>
-			<impl>hotspot</impl>
-		</impls>
-	</test>
-	<test>
-		<testCaseName>jck-runtime-vm-jvmti-openj9</testCaseName>
-		<variations>
-			<variation>NoOptions</variation>
-		</variations>
-		<command>$(JCK_CMD_TEMPLATE) -test-args=$(Q)tests=vm/jvmti,jckRoot=$(JCK_ROOT),jckversion=$(JCK_VERSION),testsuite=RUNTIME$(Q); \
-			$(TEST_STATUS)</command>
-		<levels>
-			<level>sanity</level>
-		</levels>
-		<groups>
-			<group>jck</group>
-		</groups>
-		<impls>
-			<impl>openj9</impl>
-			<impl>ibm</impl>
-		</impls>
 	</test>
 	<test>
 		<testCaseName>jck-runtime-vm-overview</testCaseName>
@@ -105,9 +86,6 @@
 		<groups>
 			<group>jck</group>
 		</groups>
-		<subsets>
-			<subset>10+</subset>
-		</subsets>
 	</test>
 	<test>
 		<testCaseName>jck-runtime-vm-module</testCaseName>
@@ -127,11 +105,11 @@
 		</subsets>
 	</test>
 	<test>
-		<testCaseName>jck-runtime-vm-verifier</testCaseName>
+		<testCaseName>jck-runtime-vm-verifier-abstractAndNative</testCaseName>
 		<variations>
 			<variation>NoOptions</variation>
 		</variations>
-		<command>$(JCK_CMD_TEMPLATE) -test-args=$(Q)tests=vm/verifier,jckRoot=$(JCK_ROOT),jckversion=$(JCK_VERSION),testsuite=RUNTIME$(Q); \
+		<command>$(JCK_CMD_TEMPLATE) -test-args=$(Q)tests=vm/verifier/abstractAndNative,jckRoot=$(JCK_ROOT),jckversion=$(JCK_VERSION),testsuite=RUNTIME$(Q); \
 	$(TEST_STATUS)</command>
 		<levels>
 			<level>sanity</level>
@@ -143,7 +121,108 @@
 			<subset>9+</subset>
 		</subsets>
 	</test>
-	
+	<test>
+		<testCaseName>jck-runtime-vm-verifier-instructions-group1</testCaseName>
+		<variations>
+			<variation>NoOptions</variation>
+		</variations>
+		<command>$(JCK_CMD_TEMPLATE) -test-args=$(Q)tests=$(VERIFIER_INSTRUCTIONS_TESTS_GROUP1),jckRoot=$(JCK_ROOT),jckversion=$(JCK_VERSION),testsuite=RUNTIME$(Q); \
+	$(TEST_STATUS)</command>
+		<levels>
+			<level>sanity</level>
+		</levels>
+		<groups>
+			<group>jck</group>
+		</groups>
+		<subsets>
+			<subset>9+</subset>
+		</subsets>
+	</test>
+	<test>
+		<testCaseName>jck-runtime-vm-verifier-instructions-group2</testCaseName>
+		<variations>
+			<variation>NoOptions</variation>
+		</variations>
+		<command>$(JCK_CMD_TEMPLATE) -test-args=$(Q)tests=$(VERIFIER_INSTRUCTIONS_TESTS_GROUP2),jckRoot=$(JCK_ROOT),jckversion=$(JCK_VERSION),testsuite=RUNTIME$(Q); \
+	$(TEST_STATUS)</command>
+		<levels>
+			<level>sanity</level>
+		</levels>
+		<groups>
+			<group>jck</group>
+		</groups>
+		<subsets>
+			<subset>9+</subset>
+		</subsets>
+	</test>
+	<test>
+		<testCaseName>jck-runtime-vm-verifier-instructions-group3</testCaseName>
+		<variations>
+			<variation>NoOptions</variation>
+		</variations>
+		<command>$(JCK_CMD_TEMPLATE) -test-args=$(Q)tests=$(VERIFIER_INSTRUCTIONS_TESTS_GROUP3),jckRoot=$(JCK_ROOT),jckversion=$(JCK_VERSION),testsuite=RUNTIME$(Q); \
+	$(TEST_STATUS)</command>
+		<levels>
+			<level>sanity</level>
+		</levels>
+		<groups>
+			<group>jck</group>
+		</groups>
+		<subsets>
+			<subset>9+</subset>
+		</subsets>
+	</test>
+	<test>
+		<testCaseName>jck-runtime-vm-verifier-instructions-group4</testCaseName>
+		<variations>
+			<variation>NoOptions</variation>
+		</variations>
+		<command>$(JCK_CMD_TEMPLATE) -test-args=$(Q)tests=$(VERIFIER_INSTRUCTIONS_TESTS_GROUP4),jckRoot=$(JCK_ROOT),jckversion=$(JCK_VERSION),testsuite=RUNTIME$(Q); \
+	$(TEST_STATUS)</command>
+		<levels>
+			<level>sanity</level>
+		</levels>
+		<groups>
+			<group>jck</group>
+		</groups>
+		<subsets>
+			<subset>9+</subset>
+		</subsets>
+	</test>
+	<test>
+		<testCaseName>jck-runtime-vm-verifier-protectedCheck</testCaseName>
+		<variations>
+			<variation>NoOptions</variation>
+		</variations>
+		<command>$(JCK_CMD_TEMPLATE) -test-args=$(Q)tests=vm/verifier/protectedCheck,jckRoot=$(JCK_ROOT),jckversion=$(JCK_VERSION),testsuite=RUNTIME$(Q); \
+	$(TEST_STATUS)</command>
+		<levels>
+			<level>sanity</level>
+		</levels>
+		<groups>
+			<group>jck</group>
+		</groups>
+		<subsets>
+			<subset>9+</subset>
+		</subsets>
+	</test>
+	<test>
+		<testCaseName>jck-runtime-vm-verifier-subclassFinal</testCaseName>
+		<variations>
+			<variation>NoOptions</variation>
+		</variations>
+		<command>$(JCK_CMD_TEMPLATE) -test-args=$(Q)tests=vm/verifier/subclassFinal,jckRoot=$(JCK_ROOT),jckversion=$(JCK_VERSION),testsuite=RUNTIME$(Q); \
+	$(TEST_STATUS)</command>
+		<levels>
+			<level>sanity</level>
+		</levels>
+		<groups>
+			<group>jck</group>
+		</groups>
+		<subsets>
+			<subset>9+</subset>
+		</subsets>
+	</test>
 	<test>
 		<testCaseName>jck-runtime-vm-instr</testCaseName>
 		<variations>
@@ -157,9 +236,6 @@
 		<groups>
 			<group>jck</group>
 		</groups>
-		<subsets>
-			<subset>10+</subset>
-		</subsets>
 	</test>
 	<test>
 		<testCaseName>jck-runtime-vm-cldc</testCaseName>
@@ -232,4 +308,3 @@
 		</groups>
 	</test>
 </playlist>
-

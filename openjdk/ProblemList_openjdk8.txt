@@ -122,6 +122,7 @@ java/beans/XMLEncoder/sun_swing_PrintColorUIResource.java	https://github.com/Ado
 java/lang/ClassLoader/Assert.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1012	aix-all
 java/lang/Math/HypotTests.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/128	linux-all
 java/lang/ProcessBuilder/Basic.java		https://github.com/AdoptOpenJDK/openjdk-tests/issues/1397	aix-all
+java/lang/invoke/MethodHandles/CatchExceptionTest.java  https://bugs.openjdk.java.net/browse/JDK-8146623    linux-s390x
 
 ############################################################################
 
@@ -161,14 +162,10 @@ java/net/MulticastSocket/Test.java https://github.com/AdoptOpenJDK/openjdk-infra
 java/net/Socket/LinkLocal.java https://github.com/AdoptOpenJDK/openjdk-infrastructure/issues/1085 macosx-all
 java/net/SocketPermission/Wildcard.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/827	linux-all
 java/net/Socks/SocksV4Test.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/827	linux-all
-java/net/URLPermission/URLTest.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/1636   linux-aarch32
-java/net/URL/OpenStream.java    https://github.com/AdoptOpenJDK/openjdk-tests/issues/1637   linux-aarch32
 java/net/ipv6tests/B6521014.java https://github.com/AdoptOpenJDK/openjdk-infrastructure/issues/1085 macosx-all
 java/net/ipv6tests/UdpTest.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/827	linux-all,macosx-all
-# java/net/ipv6tests/TcpTest.java on macosx-all issue https://github.com/AdoptOpenJDK/openjdk-infrastructure/issues/1085
-java/net/ipv6tests/TcpTest.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/1639    linux-aarch32,macosx-all
+java/net/ipv6tests/TcpTest.java https://github.com/AdoptOpenJDK/openjdk-infrastructure/issues/1085   macosx-all
 com/sun/net/httpserver/Test1.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/827 linux-ppc64le
-com/sun/net/httpserver/Test9a.java  https://github.com/AdoptOpenJDK/openjdk-tests/issues/1635 linux-aarch32
 sun/net/www/http/ChunkedOutputStream/checkError.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1261	windows-all, linux-all
 
 ############################################################################
@@ -182,7 +179,7 @@ java/io/Serializable/concurrentClassDescLookup/ConcurrentClassDescLookup.java	ht
 
 # jdk_nio
 
-java/nio/MappedByteBuffer/Truncate.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/1052 linux-s390x,linux-aarch32
+java/nio/MappedByteBuffer/Truncate.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/1052 linux-s390x
 java/nio/channels/AsynchronousSocketChannel/Basic.java	https://bugs.openjdk.java.net/browse/JDK-7052549	windows-all
 java/nio/channels/AsynchronousSocketChannel/StressLoopback.java https://bugs.openjdk.java.net/browse/JDK-8211851 aix-all
 java/nio/channels/DatagramChannel/MulticastSendReceiveTests.java    https://github.com/AdoptOpenJDK/openjdk-infrastructure/issues/699    linux-s390x
@@ -193,13 +190,8 @@ java/nio/channels/ServerSocketChannel/Basic.java	https://github.com/AdoptOpenJDK
 java/nio/channels/DatagramChannel/SendToUnresolved.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/827	linux-all
 java/nio/channels/Selector/RacyDeregister.java	https://bugs.openjdk.java.net/browse/JDK-8161083	aix-all
 java/nio/channels/AsyncCloseAndInterrupt.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/593	aix-all
-java/nio/channels/FileChannel/Transfers.java    https://github.com/AdoptOpenJDK/openjdk-tests/issues/1625   linux-aarch32
 sun/nio/ch/TestMaxCachedBufferSize.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1051 linux-s390x
-sun/nio/cs/FindDecoderBugs.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/1626   linux-aarch32
-sun/nio/cs/OLD/TestIBMDB.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1051 linux-s390x,linux-aarch32
-# sun/nio/cs/OLD/TestIBMDB.java on arm32 issue https://github.com/AdoptOpenJDK/openjdk-tests/issues/1627
-sun/nio/cs/TestStringCoding.java    https://github.com/AdoptOpenJDK/openjdk-tests/issues/1628 linux-aarch32
-sun/nio/cs/TestStringCodingUTF8.java    https://github.com/AdoptOpenJDK/openjdk-tests/issues/1629 linux-aarch32
+sun/nio/cs/OLD/TestIBMDB.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1051 linux-s390x
 
 ############################################################################
 
@@ -213,14 +205,8 @@ sun/rmi/runtime/Log/6409194/NoConsoleOutput.java https://bugs.openjdk.java.net/b
 
 # jdk_security
 
-# java/security/KeyPairGenerator/SolarisShortDSA.java on arm32 issue https://github.com/AdoptOpenJDK/openjdk-tests/issues/1630
-java/security/KeyPairGenerator/SolarisShortDSA.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1051	linux-s390x,linux-aarch32
-java/security/KeyStore/PBETest.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/1631   linux-aarch32
-java/security/MessageDigest/TestDigestIOStream.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1051	linux-s390x,linux-aarch32
-# java/security/MessageDigest/TestDigestIOStream.java on arm32 issue https://github.com/AdoptOpenJDK/openjdk-tests/issues/1632
-java/security/MessageDigest/TestSameLength.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/1633 linux-aarch32
-java/security/Security/SynchronizedAccess.java  https://bugs.openjdk.java.net/browse/JDK-8028127    linux-aarch32
-java/security/SignedObject/Chain.java   https://github.com/AdoptOpenJDK/openjdk-tests/issues/1634 linux-aarch32
+java/security/KeyPairGenerator/SolarisShortDSA.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1051	linux-s390x
+java/security/MessageDigest/TestDigestIOStream.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1051	linux-s390x
 sun/security/pkcs11/KeyStore/SecretKeysBasic.sh	https://bugs.openjdk.java.net/browse/JDK-8189603	linux-all,macosx-all,windows-all
 sun/security/pkcs11/Secmod/AddTrustedCert.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/125	linux-all
 sun/security/pkcs11/Signature/TestDSAKeyLength.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/70 linux-all
@@ -267,6 +253,7 @@ sun/tools/jstatd/TestJstatdExternalRegistry.java	https://github.com/AdoptOpenJDK
 sun/tools/jstatd/TestJstatdPort.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/115	linux-all
 sun/tools/jstatd/TestJstatdPortAndServer.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/115	linux-all
 sun/tools/jstatd/TestJstatdServer.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/115	linux-all
+sun/misc/Version/Version.java https://bugs.openjdk.java.net/browse/JDK-8244548 generic-all
 com/sun/tools/attach/StartManagementAgent.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/115	generic-all
 
 ############################################################################
@@ -274,6 +261,55 @@ com/sun/tools/attach/StartManagementAgent.java	https://github.com/AdoptOpenJDK/o
 # jdk_jdi
 
 com/sun/jdi/RedefineCrossEvent.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/227	macosx-all
+com/sun/jdi/EvalArraysAsList.sh https://github.com/AdoptOpenJDK/openjdk-tests/issues/1718 aix-all,windows-all
+# com/sun/jdi/EvalArraysAsList.sh on windows issue https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711
+com/sun/jdi/ArrayLengthDumpTest.sh  https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/BreakpointWithFullGC.sh https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/CatchAllTest.sh https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/CatchCaughtTest.sh  https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/CatchPatternTest.sh https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/CommandCommentDelimiter.sh  https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/DeoptimizeWalk.sh https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/EvalArgs.sh https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/EvalInterfaceStatic.sh  https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/GetLocalVariables3Test.sh https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/GetLocalVariables4Test.sh https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/JdbLockTest.sh  https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/JdbMethodExitTest.sh  https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 linux-s390x,windows-all
+# com/sun/jdi/JdbMethodExitTest.sh on s390x JBS https://bugs.openjdk.java.net/browse/JDK-8201652
+com/sun/jdi/JdbMissStep.sh  https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/JdbVarargsTest.sh https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/MixedSuspendTest.sh https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/NotAField.sh  https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/NullLocalVariable.sh  https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/Redefine-g.sh https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 linux-s390x,windows-all
+# com/sun/jdi/Redefine-g.sh on s390x JBS https://bugs.openjdk.java.net/browse/JDK-8201652
+com/sun/jdi/RedefineAbstractClass.sh  https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/RedefineAddPrivateMethod.sh https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/RedefineAnnotation.sh https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/RedefineChangeClassOrder.sh https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/RedefineClasses.sh  https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/RedefineClearBreakpoint.sh  https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/RedefineException.sh  https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/RedefineFinal.sh  https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/RedefineImplementor.sh  https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/RedefineIntConstantToLong.sh  https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/RedefineMulti.sh  https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/RedefinePop.sh  https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/RedefineStep.sh https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/RedefineTTYLineNumber.sh  https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/StringConvertTest.sh  https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/WatchFramePop.sh  https://github.com/AdoptOpenJDK/openjdk-tests/issues/1711 windows-all
+com/sun/jdi/AllLineLocations.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/1737 linux-s390x
+com/sun/jdi/EarlyReturnTest.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/1737 linux-s390x
+com/sun/jdi/MethodExitReturnValuesTest.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/1737 linux-s390x
+com/sun/jdi/NativeInstanceFilter.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/1737 linux-s390x
+com/sun/jdi/PopAndStepTest.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/1737 linux-s390x
+com/sun/jdi/PopAsynchronousTest.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/1737 linux-s390x
+com/sun/jdi/PopSynchronousTest.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/1737 linux-s390x
+com/sun/jdi/RedefineCrossStart.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/1737 linux-s390x
+com/sun/jdi/redefineMethod/RedefineTest.java https://github.com/AdoptOpenJDK/openjdk-tests/issues/1737 linux-s390x
+com/sun/jdi/ProcessAttachTest.sh  https://github.com/AdoptOpenJDK/openjdk-infrastructure/issues/1274  macosx-all
 
 ############################################################################
 
@@ -292,10 +328,13 @@ java/util/logging/TestLoggerWeakRefLeak.java	https://github.com/AdoptOpenJDK/ope
 java/util/stream/boottest/java/util/stream/SpinedBufferTest.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1051 linux-s390x
 java/util/stream/test/org/openjdk/tests/java/util/stream/CountLargeTest.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1051 linux-s390x
 java/util/stream/test/org/openjdk/tests/java/util/stream/ExplodeOpTest.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1051 linux-s390x
+java/util/stream/test/org/openjdk/tests/java/util/stream/FlatMapOpTest.java https://bugs.openjdk.java.net/browse/JDK-8173112    linux-s390x
 java/util/stream/test/org/openjdk/tests/java/util/stream/InfiniteStreamWithLimitOpTest.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1051 linux-s390x
 java/util/stream/test/org/openjdk/tests/java/util/stream/SequentialOpTest.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1051 linux-s390x
 java/util/stream/test/org/openjdk/tests/java/util/stream/SliceOpTest.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1051 linux-s390x
 java/util/stream/test/org/openjdk/tests/java/util/stream/StreamSpliteratorTest.java	https://github.com/AdoptOpenJDK/openjdk-tests/issues/1051 linux-s390x
+java/util/stream/test/org/openjdk/tests/java/util/stream/StreamBuilderTest.java https://bugs.openjdk.java.net/browse/JDK-8173112    linux-s390x
+java/util/stream/test/org/openjdk/tests/java/util/stream/TabulatorsTest.java    https://bugs.openjdk.java.net/browse/JDK-8173112    linux-s390x
 sun/util/calendar/zi/TestZoneInfo310.java		https://github.com/eclipse/openj9/issues/1131	generic-all
 
 ############################################################################
