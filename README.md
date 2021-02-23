@@ -11,6 +11,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 -->
 
+[![Build Status](https://dev.azure.com/AzurePipelineTry/openjdk-tests/_apis/build/status/sophia-guo.openjdk-tests?branchName=azurePipeline)](https://dev.azure.com/AzurePipelineTry/openjdk-tests/_build/latest?definitionId=1&branchName=azurePipeline)
+
 # AdoptOpenJDK Testing
 
 #### Guide to the Test Jobs at AdoptOpenJDK
