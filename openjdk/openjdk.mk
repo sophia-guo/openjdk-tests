@@ -110,7 +110,7 @@ else
 	JTREG_LANGTOOLS_TEST_DIR := $(OPENJDK_DIR)$(D)test$(D)langtools
 	JDK_CUSTOM_TARGET ?= test/jdk/java/math/BigInteger/BigIntegerTest.java
 endif
-
+export test.root := $(JTREG_HOTSPOT_TEST_DIR)
 JDK_NATIVE_OPTIONS :=
 JVM_NATIVE_OPTIONS :=
 CUSTOM_NATIVE_OPTIONS :=
