@@ -503,14 +503,7 @@ def buildTest() {
 				}
 			}
 
-			try {
-				//get pre-staged jars from test.getDependency build before test compilation
-				timeout(time: 1, unit: 'HOURS') {
-					copyArtifacts fingerprintArtifacts: true, projectName: "test.getDependency", selector: lastSuccessful(), target: 'openjdk-tests/TKG/lib'
-				}
-			} catch (Exception e) {
-				echo 'Cannot run copyArtifacts from test.getDependency. Skipping copyArtifacts...'
-			}
+
 
 			try {
 				if (env.BUILD_LIST.startsWith('system') || env.BUILD_LIST.startsWith('jck')) {
