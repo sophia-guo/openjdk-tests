@@ -119,7 +119,7 @@ def PLATFORM_MAP = [
     ],
     'x86-64_linux' : [
         'SPEC' : 'linux_x86-64_cmprssptrs',
-        'LABEL' : 'ci.role.test&&hw.arch.x86&&sw.os.windows',
+        'LABEL' : 'ci.role.test&&hw.arch.x86&&sw.os.linux',
         'DynamicAgents' : ['azure', 'fyre']
     ],
     'x86-64_linux_mixed' : [
@@ -245,7 +245,7 @@ if (JDK_VERSIONS.size() > 1 || JDK_IMPLS.size() > 1 || PLATFORMS.size() >1 || PL
                 }
             } else {
                 boolean isNodeIdle = false
-                node('master') {
+                node {
                     for (String onlineNode : onlineNodes) {
                         def nodeStatus = sh(script: "curl ${env.JENKINS_URL}computer/${onlineNode}/api/xml?xpath=/*/idle",
                                             returnStdout: true,
