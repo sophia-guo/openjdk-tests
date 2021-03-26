@@ -216,10 +216,6 @@ if (JDK_VERSIONS.size() > 1 || JDK_IMPLS.size() > 1 || PLATFORMS.size() >1 || PL
     if (PLATFORM_MAP.containsKey(params.PLATFORM)) {
         SPEC = PLATFORM_MAP[params.PLATFORM]["SPEC"]
         LABEL = params.LABEL ? params.LABEL : PLATFORM_MAP[params.PLATFORM]["LABEL"]
-        dynamicAgents = []
-        if (PLATFORM_MAP[params.PLATFORM].containsKey('DynamicAgents')) {
-            dynamicAgents = PLATFORM_MAP[params.PLATFORM]["DynamicAgents"]
-        }
 
         if (params.DOCKER_REQUIRED) {
             LABEL += "&&sw.tool.docker"
@@ -231,6 +227,11 @@ if (JDK_VERSIONS.size() > 1 || JDK_IMPLS.size() > 1 || PLATFORMS.size() >1 || PL
 
         println "SPEC: ${SPEC}"
         println "LABEL: ${LABEL}"
+
+        dynamicAgents = []
+        if (LABEL == PLATFORM_MAP[params.PLATFORM]["LABEL"] && PLATFORM_MAP[params.PLATFORM].containsKey('DynamicAgents')) {
+            dynamicAgents = PLATFORM_MAP[params.PLATFORM]["DynamicAgents"]
+        }
 
         stage('Queue') {
             String[] onlineNodes = nodesByLabel(LABEL)
