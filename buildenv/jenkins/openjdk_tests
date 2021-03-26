@@ -247,7 +247,7 @@ if (JDK_VERSIONS.size() > 1 || JDK_IMPLS.size() > 1 || PLATFORMS.size() >1 || PL
                 boolean isNodeIdle = false
                 node {
                     for (String onlineNode : onlineNodes) {
-                        def nodeStatus = sh(script: "curl ${env.JENKINS_URL}computer/${onlineNode}/api/xml?xpath=/*/idle",
+                        def nodeStatus = sh(script: "curl -s ${env.JENKINS_URL}computer/${onlineNode}/api/xml?xpath=/*/idle",
                                             returnStdout: true,
                                             returnStatus: false
                                             ).trim()
