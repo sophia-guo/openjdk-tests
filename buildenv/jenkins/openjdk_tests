@@ -119,7 +119,7 @@ def PLATFORM_MAP = [
     ],
     'x86-64_linux' : [
         'SPEC' : 'linux_x86-64_cmprssptrs',
-        'LABEL' : 'ci.role.test&&hw.arch.x86&&sw.os.linux',
+        'LABEL' : 'test-ibmcloud-rhel6-x64-1',
         'DynamicAgents' : ['azure', 'fyre']
     ],
     'x86-64_linux_mixed' : [
