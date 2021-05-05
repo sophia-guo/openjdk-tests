@@ -50,6 +50,7 @@ if (!binding.hasVariable('VENDOR_TEST_BRANCHES')) VENDOR_TEST_BRANCHES = ""
 if (!binding.hasVariable('VENDOR_TEST_DIRS')) VENDOR_TEST_DIRS = ""
 if (!binding.hasVariable('USER_CREDENTIALS_ID')) USER_CREDENTIALS_ID = ""
 if (!binding.hasVariable('GENERATE_JOBS')) GENERATE_JOBS = false
+if (!binding.hasVariable('PARALLEL_DEFAULT')) PARALLEL_DEFAULT = false
 
 
 if (!binding.hasVariable('BUILDS_TO_KEEP')) {
@@ -114,7 +115,7 @@ if (JDK_IMPL == "openj9") {
 
 // If user specifies a PARALLEL_DEFAULT option, prepend it to the list so it becomes the default in the generated job(s)
 PARALLEL_LIST = ['None', 'Dynamic', 'Subdir', 'NodesByIterations']
-if (binding.hasVariable('PARALLEL_DEFAULT')) {
+if (PARALLEL_DEFAULT.toBoolean()) {
 	PARALLEL_LIST.remove(PARALLEL_DEFAULT)
 	PARALLEL_LIST.add(0, PARALLEL_DEFAULT)
 }
