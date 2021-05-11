@@ -1,0 +1,26 @@
+name: "example showing using build-jdk action "
+on:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-16.04
+    steps:
+    - uses: actions/checkout@v1
+    - name: Build JDK
+      id: buildjdk
+      uses: adoptium/build-jdk@v1
+      with:
+        javaToBuild: 'jdk11u'
+    - name: AQA
+      uses: adoptium/run-aqa@v1
+      env:
+        TEST_JDK_HOME: ${{ steps.buildjdk.outputs.BuildJDKDir }}
+      with:
+        build_list: 'openjdk'
+        target: '_jdk_math'
+    - uses: actions/upload-artifact@v2-preview
+      if: failure()
+      with:
+        name: output
+        path: ./**/output_*/
