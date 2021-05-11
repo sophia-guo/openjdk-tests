@@ -7,11 +7,15 @@ jobs:
     runs-on: ubuntu-16.04
     steps:
     - uses: actions/checkout@v1
-    - name: Build JDK
-      id: buildjdk
-      uses: adoptium/build-jdk@v1
+#    - name: Build JDK
+#      id: buildjdk
+#      uses: adoptium/build-jdk@v1
+#      with:
+#        javaToBuild: '11'
+    - uses: AdoptOpenJDK/install-jdk@v1
       with:
         version: '11'
+        source: 'nightly'
     - name: AQA
       uses: adoptium/run-aqa@v1
       env:
