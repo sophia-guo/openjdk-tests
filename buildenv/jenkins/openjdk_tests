@@ -123,7 +123,7 @@ def PLATFORM_MAP = [
     ],
     'x86-64_linux' : [
         'SPEC' : 'linux_x86-64_cmprssptrs',
-        'LABEL' : 'ci.role.test&&hw.arch.x86&&sw.os.linux',
+        'LABEL' : 'test-packet-ubuntu1804-x64-2',
         'DynamicAgents' : ['azure', 'fyre']
     ],
     'x86-64_linux_mixed' : [
@@ -266,7 +266,7 @@ if (JDK_VERSIONS.size() > 1 || JDK_IMPLS.size() > 1 || PLATFORMS.size() >1 || PL
                         }
                     }
                     if (!isNodeIdle) {
-                       LABEL += '&&ci.agent.dynamic'
+                       LABEL = 'ci.role.test&&hw.arch.x86&&sw.os.linux&&ci.agent.dynamic'
                     }
                 }
 
