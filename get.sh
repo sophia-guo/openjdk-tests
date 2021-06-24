@@ -391,7 +391,7 @@ getBinaryOpenjdk()
 			fi
 		done
 
-	if [[ "$PLATFORM" == "s390x_zos" ]]; then
+	if [[ "$PLATFORM" == "s390x_zos" || "$PLATFORM" == *windows* ]]; then
 		chmod -R 755 j2sdk-image
 	fi
 }
