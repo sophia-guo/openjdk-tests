@@ -362,6 +362,8 @@ getBinaryOpenjdk()
 				elif [[ $jar_name == *.pax* ]]; then
 					cd ./tmp
 					pax -p xam -rzf ../$jar_name
+				elif [[ $jar_name == *.xz ]]; then
+				    tar xf $jar_name --directory ./tmp
 				else
 					gzip -cd $jar_name | (cd tmp && tar xof -)
 				fi
@@ -420,6 +422,7 @@ getOpenJDKSources() {
 	folder=`ls -d */`
 	mv $folder ../openjdk-jdk
 	cd ../
+	chmod 
 	rm -rf src
 }
 
