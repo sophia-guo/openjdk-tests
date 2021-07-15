@@ -104,16 +104,20 @@ OPENJDK_DIR := $(TEST_ROOT)$(D)openjdk$(D)openjdk-jdk
 endif
 
 JDK_CUSTOM_TARGET ?= java/math/BigInteger/BigIntegerTest.java
+$(info  JDK_CUSTOM_TARGET is $(JDK_CUSTOM_TARGET))
 ifneq (,$(findstring $(JDK_VERSION),8-9))
 	JTREG_JDK_TEST_DIR := $(OPENJDK_DIR)$(D)jdk$(D)test
 	JTREG_HOTSPOT_TEST_DIR := $(OPENJDK_DIR)$(D)hotspot$(D)test
 	JTREG_LANGTOOLS_TEST_DIR := $(OPENJDK_DIR)$(D)langtools$(D)test
+	override JDK_CUSTOM_TARGET := $(addprefix jdk/test/, $(JDK_CUSTOM_TARGET))
 else
 	JTREG_JDK_TEST_DIR := $(OPENJDK_DIR)$(D)test$(D)jdk
 	JTREG_HOTSPOT_TEST_DIR := $(OPENJDK_DIR)$(D)test$(D)hotspot$(D)jtreg
 	JTREG_LANGTOOLS_TEST_DIR := $(OPENJDK_DIR)$(D)test$(D)langtools
+	override JDK_CUSTOM_TARGET := $(addprefix test/jdk/, $(JDK_CUSTOM_TARGET))
 endif
 
+$(info  JDK_CUSTOM_TARGET is $(JDK_CUSTOM_TARGET))
 JDK_NATIVE_OPTIONS :=
 JVM_NATIVE_OPTIONS :=
 CUSTOM_NATIVE_OPTIONS :=
