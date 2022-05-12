@@ -41,6 +41,7 @@ JDK_VERSIONS.each { JDK_VERSION ->
             if (params.TOP_LEVEL_SDK_URL) {
                 // example: <jenkins_url>/job/build-scripts/job/openjdk11-pipeline/123/artifact/target/linux/aarch64/openj9/*_aarch64_linux_*.tar.gz/*zip*/openj9.zip 
                 download_url = params.TOP_LEVEL_SDK_URL + "/artifact/target/${os}/${arch}/${params.VARIANT}/*.tar.gz/*zip*/${params.VARIANT}.zip"
+                sdk_resource_value="nightly"
             }
         } else if (SDK_RESOURCE == "releases") {
             if (params.VARIANT == "openj9") {
