@@ -82,7 +82,7 @@ JDK_VERSIONS.each { JDK_VERSION ->
             def JobHelper = library(identifier: 'openjdk-jenkins-helper@master').JobHelper
             if (JobHelper.jobIsRunnable(TEST_JOB_NAME as String)) {
                 JOBS["${TEST_JOB_NAME}"] = {
-                    build job: TEST_JOB_NAME, parameters: [
+                    def downstreamJob = build job: TEST_JOB_NAME, propagate: false, parameters: [
                         string(name: 'ADOPTOPENJDK_REPO', value: params.ADOPTOPENJDK_REPO),
                         string(name: 'ADOPTOPENJDK_BRANCH', value: params.ADOPTOPENJDK_BRANCH),
                         booleanParam(name: 'USE_TESTENV_PROPERTIES', value: USE_TESTENV_PROPERTIES),
@@ -99,10 +99,48 @@ JDK_VERSIONS.each { JDK_VERSION ->
                         string(name: 'LABEL_ADDITION', value: LABEL_ADDITION),
                         string(name: 'TEST_FLAG', value: TEST_FLAG),
                         booleanParam(name: 'KEEP_REPORTDIR', value: keep_reportdir)
-                    ]
+                    ], wait: true
+                    def result = downstreamJob.getResult()
+                    echo " ${TEST_JOB_NAME} result is ${result}"
+                    if (downstreamJob.getResult() == 'SUCCESS' || downstreamJob.getResult() == 'UNSTABLE') {
+                        node("master") {
+                            //Remove the previous artifacts
+                            try {
+                                timeout(time: 1, unit: 'HOURS') {
+                                    sh "rm -r ${TEST_JOB_NAME}/* || true"
+                                }
+                            } catch (Exception e) {
+                                echo "[ERROR] Previous artifact removal timeout. "
+                            }
+                            try {
+                                timeout(time: 2, unit: 'HOURS') {
+                                    copyArtifacts(
+                                        projectName: TEST_JOB_NAME,
+                                        selector:specific("${downstreamJob.getNumber()}"),
+                                        filter: "**/${TEST_JOB_NAME}*.tap",
+                                        target: "${TEST_JOB_NAME}",
+                                        fingerprintArtifacts: true,
+                                        flatten: true
+                                    )
+                                }
+                            } catch (Exception e) {
+                                echo "Cannot run copyArtifacts from job ${TEST_JOB_NAME}. Skipping copyArtifacts..."
+                            }
+                            try {
+                                timeout(time: 1, unit: 'HOURS') {
+                                    archiveArtifacts artifacts: "${TEST_JOB_NAME}/*.tap", fingerprint: true
+                                }
+                            } catch (Exception e) {
+                                echo "Cannot archiveArtifacts from job ${TEST_JOB_NAME}. "
+                            }
+                        }
+                    } else {
+                        error("Job ${TEST_JOB_NAME} failed")
+                        currentBuild.result = "FAILURE"
+                    }
                 }
             } else {
-	            println "[WARNING] Requested test job that does not exist or is disabled: ${TEST_JOB_NAME}"
+                println "[WARNING] Requested test job that does not exist or is disabled: ${TEST_JOB_NAME}"
             }
         }
     }
