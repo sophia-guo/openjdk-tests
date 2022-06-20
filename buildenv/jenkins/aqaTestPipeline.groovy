@@ -89,7 +89,7 @@ node {
                 def JobHelper = library(identifier: 'openjdk-jenkins-helper@master').JobHelper
                 if (JobHelper.jobIsRunnable(TEST_JOB_NAME as String)) {
                     JOBS["${TEST_JOB_NAME}"] = {
-                        def downstreamJob = build job: TEST_JOB_NAME, propagate: false, parameters: [
+                        def downstreamJob = build job: TEST_JOB_NAME, propagate: true, parameters: [
                             string(name: 'ADOPTOPENJDK_REPO', value: params.ADOPTOPENJDK_REPO),
                             string(name: 'ADOPTOPENJDK_BRANCH', value: params.ADOPTOPENJDK_BRANCH),
                             booleanParam(name: 'USE_TESTENV_PROPERTIES', value: USE_TESTENV_PROPERTIES),
