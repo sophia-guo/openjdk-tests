@@ -622,9 +622,19 @@ testJavaVersion()
 		_java=${TEST_JDK_HOME}/build/bin/java
 		_release=${TEST_JDK_HOME}/build/release
 	fi
+	
+	set -x
+	java -version
+	which java
+	whereis java
+	echo $JAVA_HOME
+	
+	${TEST_JDK_HOME}/bin/java -version
+	
 	if [ -x ${_java} ]; then
-		echo "Run ${_java} -version"
+		echo "Run ${_java} -version testinggggg"
 		echo "=JAVA VERSION OUTPUT BEGIN="
+		set -x
 		${_java} -version
 		echo "=JAVA VERSION OUTPUT END="
 		if [ -e ${_release} ]; then
