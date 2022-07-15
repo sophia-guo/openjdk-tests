@@ -28,7 +28,7 @@
 			<disable>
 				<comment>https://github.com/adoptium/aqa-systemtest/issues/274</comment>
 				<impl>hotspot</impl>
-				<platform>arm_linux</platform>
+				<platform>arm_linux|aarch64_linux</platform>
 			</disable>
 		</disables>
 		<variations>
@@ -95,14 +95,7 @@
 		<disables>
 			<disable>
 				<comment>https://github.com/adoptium/aqa-systemtest/issues/274</comment>
-				<version>8</version>
 				<impl>hotspot</impl>
-			</disable>
-			<disable>
-				<comment>https://github.com/adoptium/aqa-systemtest/issues/274</comment>
-				<version>11+</version>
-				<impl>hotspot</impl>
-				<platform>arm_linux</platform>
 			</disable>
 		</disables>
 		<variations>
