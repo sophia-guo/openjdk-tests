@@ -16,6 +16,7 @@
 
 compiler/7184394/TestAESMain.java	https://github.com/adoptium/aqa-tests/issues/1051	linux-s390x
 compiler/intrinsics/sha/TestSHA.java	https://github.com/adoptium/aqa-tests/issues/1051	linux-s390x
+compiler/EscapeAnalysis/TestGetClass.java https://github.com/adoptium/aqa-tests/issues/2382 windows-x86
 
 ############################################################################
 
