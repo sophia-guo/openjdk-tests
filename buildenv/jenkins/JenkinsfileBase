@@ -1135,8 +1135,8 @@ def triggerRerunJob (failedTests) {
 def run_parallel_tests() {
 	if (params.PARALLEL && params.PARALLEL != "None" && NUM_MACHINES > 1) {
 		stage ("Parallel Tests") {
-			def childJobs = parallel parallel_tests
 			node {
+				def childJobs = parallel parallel_tests
 				// cleanWs() does not work in some cases, so set opts below
 				cleanWs disableDeferredWipeout: true, deleteDirs: true
 				try {
