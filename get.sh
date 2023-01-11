@@ -170,6 +170,8 @@ getBinaryOpenjdk()
 			echo "This directory is used to download SDK resources into it and the script will not overwrite its contents."
 			exit 1
 		fi
+	elif [ -d "$SDKDIR/openjdkbinary/2sdk-image" ] && [ "$SDKDIR" =~ "jck_run" ]
+		return
 	fi
 
 	# if these are passed through via withCredentials(CUSTOMIZED_SDK_URL_CREDENTIAL_ID) these will not be visible within job output,
@@ -256,7 +258,7 @@ getBinaryOpenjdk()
 		fi
 	else
 		download_url=""
-		echo "--sdkdir is set to $SDK_RESOURCE. Therefore, skip download jdk binary"
+		echo " SDK is available by upstream build or pre-staged. Therefore, skip download jdk binary"
 	fi
 
 	if [ "${download_url}" != "" ]; then
@@ -356,7 +358,7 @@ getBinaryOpenjdk()
 			else
 				if [ -d "$SDKDIR/openjdkbinary/tmp" ]; then
 					rm -rf $SDKDIR/openjdkbinary/tmp/*
-				else
+				else //TODO: double check for jck do we have permission under ${env.JENKINS_HOME}/jck_run/jdk${JDK_VERSION}/jdk
 					mkdir $SDKDIR/openjdkbinary/tmp
 				fi
 				echo "Uncompressing file: $jar_name ..."
@@ -369,6 +371,7 @@ getBinaryOpenjdk()
 					gzip -cd $jar_name | (cd tmp && tar xof -)
 				fi
 
+				////TODO: double check for jck do we have permission under ${env.JENKINS_HOME}/jck_run/jdk${JDK_VERSION}/jdk
 				cd $SDKDIR/openjdkbinary/tmp
 				jar_dirs=`ls -d */`
 				jar_dir_array=(${jar_dirs//\\n/ })

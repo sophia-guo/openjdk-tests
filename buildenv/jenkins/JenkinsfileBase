@@ -367,18 +367,6 @@ def setup() {
 			CUSTOMIZED_SDK_URL_OPTION = ""
 		}
 
-		if (SDK_RESOURCE == 'upstream' && !params.CUSTOMIZED_SDK_URL) {
-			timeout(time: 1, unit: 'HOURS') {
-				dir('openjdkbinary') {
-					step([$class: 'CopyArtifact',
-							fingerprintArtifacts: true,
-							flatten: true,
-							filter: "**/*.tar.gz,**/*.tgz,**/*.zip,**/*.jar,**/*.Z",
-							projectName: "${params.UPSTREAM_JOB_NAME}",
-							selector: [$class: 'SpecificBuildSelector', buildNumber: "${params.UPSTREAM_JOB_NUMBER}"]])
-				}
-			}
-		}
 		OPENJ9_REPO_OPTION = ""
 		OPENJ9_BRANCH_OPTION = ""
 		TKG_REPO_OPTION = ""
@@ -423,9 +411,42 @@ def setup() {
 
 		CURL_OPTS = (params.CURL_OPTS) ? "--curl_opts \"${params.CURL_OPTS}\"" : ""
 
-
 		GET_SH_CMD = "./get.sh -s `pwd`/.. -p $PLATFORM -r ${SDK_RESOURCE} ${JDK_VERSION_OPTION} ${JDK_IMPL_OPTION} ${CUSTOMIZED_SDK_URL_OPTION} ${CLONE_OPENJ9_OPTION} ${OPENJ9_REPO_OPTION} ${OPENJ9_BRANCH_OPTION} ${OPENJ9_SHA_OPTION} ${TKG_REPO_OPTION} ${TKG_BRANCH_OPTION} ${VENDOR_TEST_REPOS} ${VENDOR_TEST_BRANCHES} ${VENDOR_TEST_DIRS} ${VENDOR_TEST_SHAS} ${TEST_IMAGES_REQUIRED} ${DEBUG_IMAGES_REQUIRED} ${CODE_COVERAGE_OPTION} ${CURL_OPTS}"
 		RESOLVED_MAKE = "if [ `uname` = AIX ] || [ `uname` = SunOS ] || [ `uname` = *BSD ]; then MAKE=gmake; else MAKE=make; fi"
+
+		if (SDK_RESOURCE == 'upstream' && !params.CUSTOMIZED_SDK_URL) {
+			timeout(time: 1, unit: 'HOURS') {
+				dir('openjdkbinary') {
+					step([$class: 'CopyArtifact',
+							fingerprintArtifacts: true,
+							flatten: true,
+							filter: "**/*.tar.gz,**/*.tgz,**/*.zip,**/*.jar,**/*.Z",
+							projectName: "${params.UPSTREAM_JOB_NAME}",
+							selector: [$class: 'SpecificBuildSelector', buildNumber: "${params.UPSTREAM_JOB_NUMBER}"]])
+				}
+			}
+		} else if (env.BUILD_LIST.contains('jck')) {
+			def targetDir = "${env.JENKINS_HOME}/jck_run/jdk${JDK_VERSION}/jdk"
+			def tarBallName = ${CUSTOMIZED_SDK_URL}.tokenize('/')[-1]
+			def jckRunDirExists = fileExists "${target_dir}"
+			def tarballExists = fileExists "${target_dir}/${tarBallName}"
+			//get dir name, double check sh script
+			//def jdkDir= sh(script: "$(tar -tzf ${TARGET_DIR}/$(basename ${JDK_URL}) | head -1 | sed -e 's,/,,'",returnStatus:true)
+			if (jckRunDirExists) {
+				env.TEST_JDK_HOME = "${targetDir}/openjdkbinary/j2sdk-image"
+				if (!tarballExistss) {
+					dir( targetDir ) {
+						//curl the tarballs and set sdkDIR to targetDir, so in get.sh wont' grab the tarballs and extract to sdkDIR with correct name 
+						//note in get.sh need to check if the unzipped sdk dir already exit or not
+						sh "curl -Os ${CUSTOMIZED_SDK_URL}"
+						//might have issues with windows
+						SDK_RESOURCE = "upstream"
+						CUSTOMIZED_SDK_URL = ""
+						GET_SH_CMD = "./get.sh -s ${targetDir} -p $PLATFORM -r ${SDK_RESOURCE} ${JDK_VERSION_OPTION} ${JDK_IMPL_OPTION} ${CUSTOMIZED_SDK_URL_OPTION} ${CLONE_OPENJ9_OPTION} ${OPENJ9_REPO_OPTION} ${OPENJ9_BRANCH_OPTION} ${OPENJ9_SHA_OPTION} ${TKG_REPO_OPTION} ${TKG_BRANCH_OPTION} ${VENDOR_TEST_REPOS} ${VENDOR_TEST_BRANCHES} ${VENDOR_TEST_DIRS} ${VENDOR_TEST_SHAS} ${TEST_IMAGES_REQUIRED} ${DEBUG_IMAGES_REQUIRED} ${CODE_COVERAGE_OPTION} ${CURL_OPTS}"
+					}
+				}
+			}
+		}
 
 		dir( WORKSPACE) {
 			// use sshagent with Jenkins credentials ID for all platforms except zOS
@@ -436,6 +457,7 @@ def setup() {
 				get_sources()
 			}
 			getJobProperties()
+
 		}
 	}
 }
@@ -449,6 +471,30 @@ def getJobProperties() {
 			env.TEST_JDK_HOME = properties.TEST_JDK_HOME
 			echo "Reset TEST_JDK_HOME to ${TEST_JDK_HOME}"
 		}
+	}
+}
+
+def getTarball_jck_interactives() {
+	def target_dir = "${env.JENKINS_HOME}/jck_run/jdk${JDK_VERSION}/jdk"
+	def jckRunDirExists = fileExists "${target_dir}"
+	def jckRunJdkExists = fileExists "${target_dir}/jdk${env.JDK_BRANCH}"
+
+	echo "tarballExists is ${tarballExists}, jckRunDirExists is ${jckRunDirExists}, jckRunJdkExists is ${jckRunJdkExists}"
+
+	if (tarballExists && jckRunDirExists && !jckRunJdkExists) {
+		echo "copy tarball"
+		exitCode=sh(script:"cp ${jdk_binary} ${target_dir}", returnStatus:true)
+		echo "cp exitCode = ${exitCode}"
+
+		echo "extract tarball"
+		exitCode=sh(script:"tar -tzf ${target_dir}/*${suffix}", returnStatus:true)
+		echo "tar exitCode = ${exitCode}"
+
+		echo "set permissions"
+		exitCode=sh(script:"chgrp -R jck ${target_dir} 2>&1", returnStatus:true)
+		echo "chgrp returnCode = ${exitCode}"
+		exitCode=sh(script:"chmod -R 775 ${target_dir} 2>&1", returnStatus:true)
+		echo "chmod returnCode = ${exitCode}"
 	}
 }
 
