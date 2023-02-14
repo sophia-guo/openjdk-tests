@@ -625,16 +625,24 @@ testJavaVersion()
 		_java=${TEST_JDK_HOME}/build/bin/java
 		_release=${TEST_JDK_HOME}/build/release
 	fi
+
 	if [ -x ${_java} ]; then
 		echo "Run ${_java} -version"
+		ldd ${_java}
 		echo "=JAVA VERSION OUTPUT BEGIN="
 		${_java} -version
+
 		echo "=JAVA VERSION OUTPUT END="
 		if [ -e ${_release} ]; then
 			echo "=RELEASE INFO BEGIN="
 			cat ${_release}
 			echo "=RELEASE INFO END="
 		fi
+		echo LD_LIBRARY_PATH="${LD_LIBRARY_PATH}"
+        export LD_LIBRARY_PATH="$(echo $LD_LIBRARY_PATH | sed 's,/usr/lib/jvm,/BROKEN,g')"
+		echo LD_LIBRARY_PATH="${LD_LIBRARY_PATH}"
+		ldd ${_java}
+		${_java} -version
 	else
 		# Search javac as java may not be unique
 		if [[ "$CODE_COVERAGE" == "true" ]]; then
