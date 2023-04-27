@@ -97,65 +97,10 @@ JDK_VERSIONS.each { JDK_VERSION ->
                 ]
                 build job: 'Test_Job_Auto_Gen', parameters: parameters, propagate: true
             }
-
-            def JobHelper = library(identifier: 'openjdk-jenkins-helper@master').JobHelper
-            if (JobHelper.jobIsRunnable(TEST_JOB_NAME as String)) {
-                JOBS["${TEST_JOB_NAME}"] = {
-                    def downstreamJob = build job: TEST_JOB_NAME, propagate: false, parameters: [
-                        string(name: 'ADOPTOPENJDK_REPO', value: params.ADOPTOPENJDK_REPO),
-                        string(name: 'ADOPTOPENJDK_BRANCH', value: params.ADOPTOPENJDK_BRANCH),
-                        booleanParam(name: 'USE_TESTENV_PROPERTIES', value: USE_TESTENV_PROPERTIES),
-                        string(name: 'SDK_RESOURCE', value: sdk_resource_value),
-                        string(name: 'CUSTOMIZED_SDK_URL',  value: download_url),
-                        string(name: 'CUSTOMIZED_SDK_URL_CREDENTIAL_ID',  value: params.CUSTOMIZED_SDK_URL_CREDENTIAL_ID),
-                        string(name: 'PARALLEL', value: PARALLEL),
-                        string(name: 'NUM_MACHINES', value: NUM_MACHINES.toString()),
-                        booleanParam(name: 'GENERATE_JOBS', value: AUTO_AQA_GEN),
-                        booleanParam(name: 'LIGHT_WEIGHT_CHECKOUT', value: false),
-                        string(name: 'TIME_LIMIT', value: TIME_LIMIT.toString()),
-                        string(name: 'TRSS_URL', value: TRSS_URL),
-                        string(name: 'LABEL', value: LABEL),
-                        string(name: 'LABEL_ADDITION', value: LABEL_ADDITION),
-                        string(name: 'TEST_FLAG', value: TEST_FLAG),
-                        string(name: 'APPLICATION_OPTIONS', value: APPLICATION_OPTIONS),
-                        booleanParam(name: 'KEEP_REPORTDIR', value: keep_reportdir),
-                        booleanParam(name: 'SETUP_JCK_RUN', value: SETUP_JCK_RUN)
-                    ], wait: true
-                    def result = downstreamJob.getResult()
-                    echo " ${TEST_JOB_NAME} result is ${result}"
-                    if (downstreamJob.getResult() == 'SUCCESS' || downstreamJob.getResult() == 'UNSTABLE') {
-                        echo "[NODE SHIFT] MOVING INTO CONTROLLER NODE..."
-                        node("worker || (ci.role.test&&hw.arch.x86&&sw.os.linux)") {
-                            try {
-                                timeout(time: 2, unit: 'HOURS') {
-                                    copyArtifacts(
-                                        projectName: TEST_JOB_NAME,
-                                        selector:specific("${downstreamJob.getNumber()}"),
-                                        filter: "**/${TEST_JOB_NAME}*.tap",
-                                        fingerprintArtifacts: true,
-                                        flatten: true
-                                    )
-                                }
-                            } catch (Exception e) {
-                                echo "Cannot run copyArtifacts from job ${TEST_JOB_NAME}. Skipping copyArtifacts..."
-                            }
-                            try {
-                                timeout(time: 1, unit: 'HOURS') {
-                                    archiveArtifacts artifacts: "*.tap", fingerprint: true
-                                }
-                            } catch (Exception e) {
-                                echo "Cannot archiveArtifacts from job ${TEST_JOB_NAME}. "
-                            }
-                        }
-                    } else {
-                        echo " ${TEST_JOB_NAME} result is ${result}"
-                        currentBuild.result = "FAILURE"
-                    }
-                }
-            } else {
-                println "[WARNING] Requested test job that does not exist or is disabled: ${TEST_JOB_NAME}"
-            }
+            echo "[NODE SHIFT] MOVING INTO CONTROLLER NODE..."
+            node("jck-equinix_esxi-ubuntu2204-x64-1") {
+                cleanWs()
+            } 
         }
     }
 }
-parallel JOBS
