@@ -440,6 +440,7 @@ def setup() {
 							fingerprintArtifacts: true,
 							flatten: true,
 							filter: "**/*.tar.gz,**/*.tgz,**/*.zip,**/*.jar,**/*.Z,**/*sbom*.json",
+							excludes: '**/OpenJDK*-sbom*metadata.json,**/OpenJDK*-jdk-sources*.tar.gz',
 							projectName: "${params.UPSTREAM_JOB_NAME}",
 							selector: [$class: 'SpecificBuildSelector', buildNumber: "${params.UPSTREAM_JOB_NUMBER}"]])
 				}
