@@ -2,7 +2,6 @@
 
 def AQA_REPO = params.AQA_REPO ?: "adoptium"
 def AQA_BRANCH = params.AQA_BRANCH ?: "master"
-def JDK_VERSIONS = params.JDK_VERSIONS.trim().split("\\s*,\\s*");
 def PLATFORMS = params.PLATFORMS.trim().split("\\s*,\\s*");
 def TARGETS = params.TARGETS.trim().split("\\s*,\\s*");
 def LABEL = (params.LABEL) ?: ""
@@ -21,7 +20,7 @@ timestamps{
             // change openjdk-tests to aqa-tests
             sh "curl -Os https://raw.githubusercontent.com/${AQA_REPO}/aqa-tests/${AQA_BRANCH}/buildenv/jenkins/tapVerification/aqaTap.sh"
             sh "chmod 755 aqaTap.sh"
-            JDK_VERSIONS.each { JDK_VERSION ->
+            TARGETS.each { TARGET ->
                 PLATFORMS.each { PLATFORM ->
                     String[] tokens = PLATFORM.split('_')
                     def os = tokens[1];
@@ -48,37 +47,20 @@ timestamps{
                     if (SDK_RESOURCE == "customized" ) {
                         if (params.TOP_LEVEL_SDK_URL) {
                             // example: <jenkins_url>/job/build-scripts/job/openjdk17-pipeline-IBM/354/artifact/target/linux/s390x/openj9/AQAvitTaps/*zip*/AQAvitTaps.zip
-
-                            download_url = params.TOP_LEVEL_SDK_URL + "artifact/target/${os}/${arch}/${params.VARIANT}/AQAvitTaps/*zip*/AQAvitTaps.zip"
-                            dir("${WORKSPACE}") {
-                                env.PLATFORM = PLATFORM
-                                def PLATFORM_DIR = params.PLATFORM_DIR ? "${params.PLATFORM_DIR}" : "${PLATFORM}"
-                                def aqaTapCmd = "${WORKSPACE}/aqaTap.sh -u ${download_url} -p ${PLATFORM_DIR}"
-                                if (params.CUSTOMIZED_SDK_URL_CREDENTIAL_ID) {
-                                    // USERNAME and PASSWORD reference with a withCredentials block will not be visible within job output
-                                    withCredentials([usernamePassword(credentialsId: "${params.CUSTOMIZED_SDK_URL_CREDENTIAL_ID}", usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-                                        sh "$aqaTapCmd"
-                                    }
-                                } else {
-                                    sh "$aqaTapCmd"
-                                }
-
+                            download_url = params.TOP_LEVEL_SDK_URL + "artifact/target/${os}/${arch}/${params.VARIANT}/AQAvitTaps/*zip*/AQAvitTaps.zip"                      
+                        }
+                    }
+                    dir("${WORKSPACE}") {
+                        env.PLATFORM = PLATFORM
+                        def PLATFORM_DIR = params.PLATFORM_DIR ? "${params.PLATFORM_DIR}" : "${PLATFORM}"
+                        def aqaTapCmd = "${WORKSPACE}/aqaTap.sh -u ${download_url} -p ${PLATFORM_DIR}"
+                        if (params.CUSTOMIZED_SDK_URL_CREDENTIAL_ID) {
+                            // USERNAME and PASSWORD reference with a withCredentials block will not be visible within job output
+                            withCredentials([usernamePassword(credentialsId: "${params.CUSTOMIZED_SDK_URL_CREDENTIAL_ID}", usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                                sh "$aqaTapCmd"
                             }
-                        } else if (params.CUSTOMIZED_SDK_URL) {
-                            dir("${WORKSPACE}") {
-                                env.PLATFORM = PLATFORM
-                                def PLATFORM_DIR = params.PLATFORM_DIR ? "${params.PLATFORM_DIR}" : "${PLATFORM}"
-                                def aqaTapCmd = "${WORKSPACE}/aqaTap.sh -u ${download_url} -p ${PLATFORM_DIR}"
-                                if (params.CUSTOMIZED_SDK_URL_CREDENTIAL_ID) {
-                                    // USERNAME and PASSWORD reference with a withCredentials block will not be visible within job output
-                                    withCredentials([usernamePassword(credentialsId: "${params.CUSTOMIZED_SDK_URL_CREDENTIAL_ID}", usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-                                        sh "$aqaTapCmd"
-                                    }
-                                } else {
-                                    sh "$aqaTapCmd"
-                                }
-
-                            }
+                        } else {
+                            sh "$aqaTapCmd"
                         }
                     }
                 }
