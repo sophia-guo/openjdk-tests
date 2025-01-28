@@ -202,8 +202,8 @@ OPENJDK_CONTAINER_TEST_OPTS:=-Djdk.test.docker.image.name=registry.access.redhat
 ifneq ($(CONTAINER_TEST_ENGINE),docker)
   OPENJDK_CONTAINER_TEST_OPTS += -Djdk.test.container.command=$(CONTAINER_TEST_ENGINE)
 endif
+EXCLUDE_PROBLEM_LIST_FILE:=
 PROBLEM_LIST_FILE:=excludes/ProblemList_openjdk$(JDK_VERSION).txt
-PROBLEM_LIST_DEFAULT:=excludes/ProblemList_openjdk11.txt
 TEST_VARIATION_DUMP:=
 TEST_VARIATION_JIT_PREVIEW:=
 TEST_VARIATION_JIT_AGGRESIVE:=
@@ -220,9 +220,8 @@ ifneq ($(filter openj9 ibm, $(JDK_IMPL)),)
 	EXTRA_OPTIONS := -Xverbosegclog $(EXTRA_OPTIONS)
 endif
 
-# if cannot find the problem list file, set to default file
-ifeq (,$(wildcard $(PROBLEM_LIST_FILE)))
-	PROBLEM_LIST_FILE:=$(PROBLEM_LIST_DEFAULT)
+ifneq (,$(wildcard $(PROBLEM_LIST_FILE)))
+	EXCLUDE_PROBLEM_LIST_FILE:=-exclude:$(Q)$(TEST_ROOT)$(D)openjdk$(D)$(PROBLEM_LIST_FILE)$(Q)
 endif
 
 # ProblemList-graal.txt file only exists in jdk11 and jdk16. Refer to the file only when it is present.
