@@ -366,8 +366,9 @@ def triggerChildJob(TEST_JOB_NAME, childParams) {
                         echo 'Exception: ' + e.toString()
                         echo "Cannot archiveArtifacts from job ${TEST_JOB_NAME}."
                     }
-                    // For TCK (JCK) jobs only: collect rerun.properties so the relay pipeline
-                    // can surface rerun links back to the upstream public Jenkins job.
+                    // For TCK (JCK) jobs only: copy rerun.properties from the test job and
+                    // re-archive it on this pipeline build so the upstream public Jenkins job
+                    // can retrieve it via copyArtifacts using the remote build number.
                     if (isJckJob && params.VARIANT == "temurin" && downstreamJobResult == 'UNSTABLE') {
                         try {
                             copyArtifacts(
@@ -379,13 +380,7 @@ def triggerChildJob(TEST_JOB_NAME, childParams) {
                             )
                             def rerunPropsFile = "${TEST_JOB_NAME}/${buildId}/rerun.properties"
                             if (fileExists(rerunPropsFile)) {
-                                def rerunProps = readProperties file: rerunPropsFile
-                                def rerunDescLines = rerunProps.collect { key, value ->
-                                    "<br><a href=\"${value}\" target=\"_blank\">Rerun ${TEST_JOB_NAME} [${key}]</a>"
-                                }.join('')
-                                if (rerunDescLines) {
-                                    currentBuild.description += rerunDescLines
-                                }
+                                archiveArtifacts artifacts: rerunPropsFile, fingerprint: false, allowEmptyArchive: true
                             }
                         } catch (Exception e) {
                             echo "Cannot retrieve rerun.properties from ${TEST_JOB_NAME}/${buildId}: ${e}"
@@ -795,14 +790,14 @@ def remoteTriggerTemurinJCK (jobJdkVersion, jobPlatforms) {
                 def remoteJobUrl = "https://ci.eclipse.org/temurin-compliance/job/AQA_Test_Pipeline/${remoteBuildNumber}/"
                 def remoteBadgeUrl = getResultBadgeUrl(remoteJobResult)
 
-                // Fetch rerun links from the private pipeline's build description via Jenkins JSON API.
-                // The private aqaTestPipeline appends rerun links (from rerun.properties collected
-                // from each TCK test job) into its own build description. We read them back here
-                // to replace the generic [rerun] link with the actual per-target rerun links.
-                def rerunLinks = getRemoteRerunLinks(remoteBuildNumber)
+                // Fetch rerun.properties archived by the private pipeline job so we can replace
+                // the generic [rerun] link with the actual per-target rerun links.
+                // The private aqaTestPipeline re-archives rerun.properties (collected from each
+                // TCK test job) under the path <TEST_JOB_NAME>/<buildId>/rerun.properties.
+                def rerunLinks = getRemoteRerunLinks('AQA_Test_Pipeline', remoteBuildNumber)
 
-                // Build fallback rerun URL (used when no rerun links were found on the private job,
-                // e.g. the remote run was SUCCESS or rerun.properties was not produced)
+                // Build fallback rerun URL (used when the remote run was SUCCESS or
+                // rerun.properties was not produced)
                 def rerunParams = [
                     SDK_RESOURCE: 'customized',
                     TARGETS: target,
@@ -988,8 +983,8 @@ def remoteTriggerTemurinJCKDirect() {
             def remoteJobUrl = "https://ci.eclipse.org/temurin-compliance/job/AQA_Test_Pipeline/${remoteBuildNumber}/"
             def remoteBadgeUrl = getResultBadgeUrl(remoteJobResult)
 
-            // Fetch rerun links from the private pipeline's build description
-            def rerunLinks = getRemoteRerunLinks(remoteBuildNumber)
+            // Fetch rerun.properties archived by the private pipeline job
+            def rerunLinks = getRemoteRerunLinks('AQA_Test_Pipeline', remoteBuildNumber)
 
             // Build fallback rerun URL
             def rerunParams = [
@@ -1044,34 +1039,29 @@ def remoteTriggerTemurinJCKDirect() {
     }
 }
 
-// Fetch rerun links from the private Jenkins pipeline build description via the JSON API.
-// The private aqaTestPipeline writes rerun links (parsed from each TCK test job's rerun.properties)
-// into its own build description as HTML anchors with the pattern:
-//   Rerun <TEST_JOB_NAME> [<key>]
-// Returns a LinkedHashMap of { label -> url } preserving insertion order, or empty map if none found.
-def getRemoteRerunLinks(remoteBuildNumber) {
+// Fetch rerun links from rerun.properties archived on the private pipeline job.
+// The private aqaTestPipeline re-archives rerun.properties from each TCK test job
+// under <TEST_JOB_NAME>/<buildId>/rerun.properties. This function copies all matching
+// files and merges them into a single { label -> url } map for the public job to use.
+// Returns an empty map when no rerun.properties was archived (SUCCESS run, etc.).
+def getRemoteRerunLinks(remoteJobName, remoteBuildNumber) {
     def rerunLinks = [:]
     try {
-        def apiUrl = "https://ci.eclipse.org/temurin-compliance/job/AQA_Test_Pipeline/${remoteBuildNumber}/api/json?tree=description"
-        def response = httpRequest(
-            url: apiUrl,
-            authentication: 'temurin-compliance-trigger',
-            validResponseCodes: '200',
-            timeout: 30
+        copyArtifacts(
+            projectName: remoteJobName,
+            selector: specific("${remoteBuildNumber}"),
+            filter: "**/rerun.properties",
+            target: "remote_rerun/${remoteBuildNumber}",
+            optional: true
         )
-        def json = readJSON text: response.content
-        def description = json.description ?: ""
-        // Extract all anchor tags written by triggerChildJob's rerun.properties block:
-        //   <a href="<url>" target="_blank">Rerun <jobname> [<key>]</a>
-        def matcher = description =~ /<a href="([^"]+)"[^>]*>Rerun [^\[]+\[([^\]]+)\]<\/a>/
-        while (matcher.find()) {
-            def url   = matcher.group(1)
-            def label = matcher.group(2)
-            rerunLinks[label] = url
+        def files = findFiles(glob: "remote_rerun/${remoteBuildNumber}/**/rerun.properties")
+        files.each { f ->
+            def props = readProperties file: f.path
+            props.each { key, value -> rerunLinks[key] = value }
         }
         echo "Found ${rerunLinks.size()} rerun link(s) from remote build ${remoteBuildNumber}"
     } catch (Exception e) {
-        echo "Could not fetch rerun links from remote build ${remoteBuildNumber}: ${e}"
+        echo "Could not fetch rerun.properties from remote build ${remoteBuildNumber}: ${e}"
     }
     return rerunLinks
 }
