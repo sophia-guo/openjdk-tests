@@ -325,6 +325,7 @@ def triggerChildJob(TEST_JOB_NAME, childParams) {
     def JobHelper = library(identifier: 'openjdk-jenkins-helper@master').JobHelper
     if (JobHelper.jobIsRunnable(TEST_JOB_NAME as String)) {
         int jobNum = JOBS.size() + 1
+        def isJckJob = TEST_JOB_NAME.contains("jck")
         JOBS["${TEST_JOB_NAME}_${jobNum}"] = {
             def downstreamJob = build job: TEST_JOB_NAME, parameters: childParams, propagate: false, wait: true
             def downstreamJobResult = downstreamJob.getResult()
@@ -364,6 +365,31 @@ def triggerChildJob(TEST_JOB_NAME, childParams) {
                     } catch (Exception e) {
                         echo 'Exception: ' + e.toString()
                         echo "Cannot archiveArtifacts from job ${TEST_JOB_NAME}."
+                    }
+                    // For TCK (JCK) jobs only: collect rerun.properties so the relay pipeline
+                    // can surface rerun links back to the upstream public Jenkins job.
+                    if (isJckJob && downstreamJobResult == 'UNSTABLE') {
+                        try {
+                            copyArtifacts(
+                                projectName: TEST_JOB_NAME,
+                                selector: specific("${buildId}"),
+                                filter: "rerun.properties",
+                                target: "${TEST_JOB_NAME}/${buildId}",
+                                optional: true
+                            )
+                            def rerunPropsFile = "${TEST_JOB_NAME}/${buildId}/rerun.properties"
+                            if (fileExists(rerunPropsFile)) {
+                                def rerunProps = readProperties file: rerunPropsFile
+                                def rerunDescLines = rerunProps.collect { key, value ->
+                                    "<br><a href=\"${value}\" target=\"_blank\">Rerun ${TEST_JOB_NAME} [${key}]</a>"
+                                }.join('')
+                                if (rerunDescLines) {
+                                    currentBuild.description += rerunDescLines
+                                }
+                            }
+                        } catch (Exception e) {
+                            echo "Cannot retrieve rerun.properties from ${TEST_JOB_NAME}/${buildId}: ${e}"
+                        }
                     }
                 }
             }

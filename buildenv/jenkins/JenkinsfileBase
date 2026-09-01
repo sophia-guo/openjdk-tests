@@ -1585,6 +1585,8 @@ def addFailedTestsGrinderLink(paths="") {
 	if (env.jobStatus == 'UNSTABLE' || env.jobStatus == 'FAILURE' || env.jobStatus == 'ABORTED') {
 		def customizedTestCases = getFailedAndCustomizedTest(paths)
 		String url = env.RERUN_LINK
+		// Collect all rerun URLs so they can be archived for upstream consumers (e.g. remote-trigger relay jobs)
+		def rerunEntries = [:]
 		// Add rerun FailedTests link only if there are targets other than _custom as it's duplicate with rerun customized link
 		if (env.FAILED_TESTS?.trim() && (env.FAILED_TESTS.contains(',') || !env.FAILED_TESTS.contains('_custom'))) {
 			// Remove _custom target from FAILED_TESTS
@@ -1593,6 +1595,7 @@ def addFailedTestsGrinderLink(paths="") {
 			def failedTestUrl = url.replace(env.FAILED_TEST_TARGET, "TARGET=$failedTestList")
 			echo "Rerun in Grinder with failed test targets: ${failedTestUrl}"
 			currentBuild.description += "<br><a href=${failedTestUrl}> Rerun in Grinder with failed test targets</a>"
+			rerunEntries['failed_test_targets'] = failedTestUrl
 		}
 		if ( customizedTestCases != null ) {
 			customizedTestCases.each { target, testcases ->
@@ -1602,7 +1605,16 @@ def addFailedTestsGrinderLink(paths="") {
 				customURL = customURL.replace(env.CUSTOM_TARGET_KEY_VALUE, "CUSTOM_TARGET=$tempTestCases")
 				echo "Rerun failed ${target} test cases in Grinder with ${target}_custom target: ${customURL}"
 				currentBuild.description += "<br><a href=${customURL}> Rerun failed ${target} test cases in Grinder with ${target}_custom target</a>"
+				rerunEntries["${target}_custom"] = customURL
 			}
+		}
+		// Archive all rerun URLs as a properties file so upstream relay jobs (e.g. aqaTestPipeline)
+		// can retrieve them. Only write for the direct parent job — not for _rerun/_testList_/_iteration_
+		// child jobs which are second-level and their rerun links are not needed by the pipeline.
+		if (rerunEntries && !JOB_NAME.contains("_rerun") && !JOB_NAME.contains("_testList_") && !JOB_NAME.contains("_iteration_")) {
+			def propsContent = rerunEntries.collect { key, value -> "${key}=${value}" }.join('\n')
+			writeFile file: 'rerun.properties', text: propsContent
+			archiveArtifacts artifacts: 'rerun.properties', fingerprint: false, allowEmptyArchive: true
 		}
 	}
 }
