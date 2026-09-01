@@ -794,8 +794,15 @@ def remoteTriggerTemurinJCK (jobJdkVersion, jobPlatforms) {
                 def remoteBuildNumber = handle.getBuildNumber()
                 def remoteJobUrl = "https://ci.eclipse.org/temurin-compliance/job/AQA_Test_Pipeline/${remoteBuildNumber}/"
                 def remoteBadgeUrl = getResultBadgeUrl(remoteJobResult)
-                
-                // Build rerun URL
+
+                // Fetch rerun links from the private pipeline's build description via Jenkins JSON API.
+                // The private aqaTestPipeline appends rerun links (from rerun.properties collected
+                // from each TCK test job) into its own build description. We read them back here
+                // to replace the generic [rerun] link with the actual per-target rerun links.
+                def rerunLinks = getRemoteRerunLinks(remoteBuildNumber)
+
+                // Build fallback rerun URL (used when no rerun links were found on the private job,
+                // e.g. the remote run was SUCCESS or rerun.properties was not produced)
                 def rerunParams = [
                     SDK_RESOURCE: 'customized',
                     TARGETS: target,
@@ -819,18 +826,28 @@ def remoteTriggerTemurinJCK (jobJdkVersion, jobPlatforms) {
                 if (label) {
                     rerunParams.LABEL = label
                 }
-                
                 def queryString = rerunParams.collect { k, v ->
                     "${URLEncoder.encode(k, 'UTF-8')}=${URLEncoder.encode(v.toString(), 'UTF-8')}"
                 }.join('&')
-                def rerunUrl = "${env.JENKINS_URL}job/AQA_Test_Pipeline_JCK/parambuild?${queryString}&MODE=RELAY"
-                
+                def fallbackRerunUrl = "${env.JENKINS_URL}job/AQA_Test_Pipeline_JCK/parambuild?${queryString}&MODE=RELAY"
+
+                // Build the rerun section: use per-target links from private job if available,
+                // otherwise fall back to the single generic rerun link
+                def rerunSection = ""
+                if (rerunLinks) {
+                    rerunLinks.each { linkLabel, linkUrl ->
+                        rerunSection += """<a href="${linkUrl}" target="_blank" style="margin-left: 10px; font-size: 11px;">[${linkLabel}]</a>"""
+                    }
+                } else {
+                    rerunSection = """<a href="${fallbackRerunUrl}" target="_blank" style="margin-left: 10px; font-size: 11px;">[rerun]</a>"""
+                }
+
                 currentBuild.description += """
                     <p>${displayName} : ${target}:
                     <a href="${remoteJobUrl}" target="_blank">
                         <img src="${remoteBadgeUrl}" />
                     </a>
-                    <a href="${rerunUrl}" target="_blank" style="margin-left: 10px; font-size: 11px;">[rerun]</a>
+                    ${rerunSection}
                     </p>
                 """
                 
@@ -970,8 +987,11 @@ def remoteTriggerTemurinJCKDirect() {
             def remoteBuildNumber = handle.getBuildNumber()
             def remoteJobUrl = "https://ci.eclipse.org/temurin-compliance/job/AQA_Test_Pipeline/${remoteBuildNumber}/"
             def remoteBadgeUrl = getResultBadgeUrl(remoteJobResult)
-            
-            // Build rerun URL
+
+            // Fetch rerun links from the private pipeline's build description
+            def rerunLinks = getRemoteRerunLinks(remoteBuildNumber)
+
+            // Build fallback rerun URL
             def rerunParams = [
                 SDK_RESOURCE: params.SDK_RESOURCE ?: 'customized',
                 TARGETS: target,
@@ -995,18 +1015,26 @@ def remoteTriggerTemurinJCKDirect() {
             if (params.LABEL) {
                 rerunParams.LABEL = params.LABEL
             }
-            
             def queryString = rerunParams.collect { k, v ->
                 "${URLEncoder.encode(k, 'UTF-8')}=${URLEncoder.encode(v.toString(), 'UTF-8')}"
             }.join('&')
-            def rerunUrl = "${env.JENKINS_URL}job/AQA_Test_Pipeline_JCK/parambuild?${queryString}&MODE=RELAY"
-            
+            def fallbackRerunUrl = "${env.JENKINS_URL}job/AQA_Test_Pipeline_JCK/parambuild?${queryString}&MODE=RELAY"
+
+            def rerunSection = ""
+            if (rerunLinks) {
+                rerunLinks.each { linkLabel, linkUrl ->
+                    rerunSection += """<a href="${linkUrl}" target="_blank" style="margin-left: 10px; font-size: 11px;">[${linkLabel}]</a>"""
+                }
+            } else {
+                rerunSection = """<a href="${fallbackRerunUrl}" target="_blank" style="margin-left: 10px; font-size: 11px;">[rerun]</a>"""
+            }
+
             currentBuild.description += """
                 <p>${target} on ${platform} (JDK${jobJdkVersion}):
                 <a href="${remoteJobUrl}" target="_blank">
                     <img src="${remoteBadgeUrl}" />
                 </a>
-                <a href="${rerunUrl}" target="_blank" style="margin-left: 10px; font-size: 11px;">[rerun]</a>
+                ${rerunSection}
                 </p>
             """
             
@@ -1014,4 +1042,36 @@ def remoteTriggerTemurinJCKDirect() {
             updateBuildResult(remoteJobResult)
         }
     }
+}
+
+// Fetch rerun links from the private Jenkins pipeline build description via the JSON API.
+// The private aqaTestPipeline writes rerun links (parsed from each TCK test job's rerun.properties)
+// into its own build description as HTML anchors with the pattern:
+//   Rerun <TEST_JOB_NAME> [<key>]
+// Returns a LinkedHashMap of { label -> url } preserving insertion order, or empty map if none found.
+def getRemoteRerunLinks(remoteBuildNumber) {
+    def rerunLinks = [:]
+    try {
+        def apiUrl = "https://ci.eclipse.org/temurin-compliance/job/AQA_Test_Pipeline/${remoteBuildNumber}/api/json?tree=description"
+        def response = httpRequest(
+            url: apiUrl,
+            authentication: 'temurin-compliance-trigger',
+            validResponseCodes: '200',
+            timeout: 30
+        )
+        def json = readJSON text: response.content
+        def description = json.description ?: ""
+        // Extract all anchor tags written by triggerChildJob's rerun.properties block:
+        //   <a href="<url>" target="_blank">Rerun <jobname> [<key>]</a>
+        def matcher = description =~ /<a href="([^"]+)"[^>]*>Rerun [^\[]+\[([^\]]+)\]<\/a>/
+        while (matcher.find()) {
+            def url   = matcher.group(1)
+            def label = matcher.group(2)
+            rerunLinks[label] = url
+        }
+        echo "Found ${rerunLinks.size()} rerun link(s) from remote build ${remoteBuildNumber}"
+    } catch (Exception e) {
+        echo "Could not fetch rerun links from remote build ${remoteBuildNumber}: ${e}"
+    }
+    return rerunLinks
 }
