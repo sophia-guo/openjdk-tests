@@ -368,7 +368,7 @@ def triggerChildJob(TEST_JOB_NAME, childParams) {
                     }
                     // For TCK (JCK) jobs only: collect rerun.properties so the relay pipeline
                     // can surface rerun links back to the upstream public Jenkins job.
-                    if (isJckJob && downstreamJobResult == 'UNSTABLE') {
+                    if (isJckJob && params.VARIANT == "temurin" && downstreamJobResult == 'UNSTABLE') {
                         try {
                             copyArtifacts(
                                 projectName: TEST_JOB_NAME,
