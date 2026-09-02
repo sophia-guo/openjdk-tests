@@ -1100,7 +1100,7 @@ def getRemoteRerunLinks(remoteJobName, remoteBuildNumber, baseRerunUrl) {
                 // Generate description text matching the private job's link text
                 def description
                 if (target.contains("TESTLIST")) {
-                    description = "Rerun in Grinder with failed test targets"
+                    description = "Rerun failed test targets"
                 } else {
                     // target is e.g. "jckruntime_custom" — extract "jckruntime" for the description
                     def baseName = target.replace("_custom", "")
