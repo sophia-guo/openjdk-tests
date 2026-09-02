@@ -1585,17 +1585,26 @@ def addFailedTestsGrinderLink(paths="") {
 	if (env.jobStatus == 'UNSTABLE' || env.jobStatus == 'FAILURE' || env.jobStatus == 'ABORTED') {
 		def customizedTestCases = getFailedAndCustomizedTest(paths)
 		String url = env.RERUN_LINK
-		// Collect all rerun URLs so they can be archived for upstream consumers (e.g. remote-trigger relay jobs)
+		// Collect rerun overrides so upstream relay jobs can reconstruct per-target rerun links.
+		// Only TARGET (and CUSTOM_TARGET for _custom runs) need to be stored — all other parameters
+		// are already known by the public Jenkins job and will be kept as-is from the base rerun URL.
+		// Format:
+		//   TARGET.<n>=<target value>              e.g. TARGET.0=testList TESTLIST=jckruntime_0
+		//   TARGET.<n>=<target>_custom             e.g. TARGET.1=jckruntime_custom
+		//   CUSTOM_TARGET.<n>=<url-encoded cases>  e.g. CUSTOM_TARGET.1=api%2Fjava%2Fnet%2F...
+		// Entries sharing the same index belong together (TARGET.1 pairs with CUSTOM_TARGET.1).
 		def rerunEntries = [:]
+		int entryIndex = 0
 		// Add rerun FailedTests link only if there are targets other than _custom as it's duplicate with rerun customized link
 		if (env.FAILED_TESTS?.trim() && (env.FAILED_TESTS.contains(',') || !env.FAILED_TESTS.contains('_custom'))) {
 			// Remove _custom target from FAILED_TESTS
 			def filteredFailedTestLists = env.FAILED_TESTS.split(',').collect{ it.trim() }.findAll { !it.contains('_custom') }.join(',')
-			String failedTestList = "testList+TESTLIST=" + filteredFailedTestLists
-			def failedTestUrl = url.replace(env.FAILED_TEST_TARGET, "TARGET=$failedTestList")
+			String failedTestList = "testList TESTLIST=" + filteredFailedTestLists
+			def failedTestUrl = url.replace(env.FAILED_TEST_TARGET, "TARGET=" + URLEncoder.encode(failedTestList, "UTF-8"))
 			echo "Rerun in Grinder with failed test targets: ${failedTestUrl}"
 			currentBuild.description += "<br><a href=${failedTestUrl}> Rerun in Grinder with failed test targets</a>"
-			rerunEntries['failed_test_targets'] = failedTestUrl
+			rerunEntries["TARGET.${entryIndex}"] = failedTestList
+			entryIndex++
 		}
 		if ( customizedTestCases != null ) {
 			customizedTestCases.each { target, testcases ->
@@ -1605,18 +1614,17 @@ def addFailedTestsGrinderLink(paths="") {
 				customURL = customURL.replace(env.CUSTOM_TARGET_KEY_VALUE, "CUSTOM_TARGET=$tempTestCases")
 				echo "Rerun failed ${target} test cases in Grinder with ${target}_custom target: ${customURL}"
 				currentBuild.description += "<br><a href=${customURL}> Rerun failed ${target} test cases in Grinder with ${target}_custom target</a>"
-				rerunEntries["${target}_custom"] = customURL
+				rerunEntries["TARGET.${entryIndex}"] = "${target}_custom"
+				rerunEntries["CUSTOM_TARGET.${entryIndex}"] = testcases.toString()
+				entryIndex++
 			}
 		}
-		// Archive all rerun URLs as a properties file so upstream relay jobs (e.g. aqaTestPipeline)
-		// can retrieve them. Only write for the direct parent job — not for _rerun/_testList_/_iteration_
-		// child jobs which are second-level and their rerun links are not needed by the pipeline.
-		// Note: env.RERUN_LINK uses &amp; as separator (correct for HTML href), so we unescape to
-		// plain & so the URLs are valid when read back by readProperties on the public Jenkins.
+		// Archive TARGET/CUSTOM_TARGET overrides as a properties file so upstream relay jobs
+		// (e.g. aqaTestPipeline) can build the correct per-target rerun links by overriding
+		// only TARGET and CUSTOM_TARGET on top of the base rerun URL they already have.
+		// Only write for the direct parent job — not for _rerun/_testList_/_iteration_ children.
 		if (rerunEntries && !JOB_NAME.contains("_rerun") && !JOB_NAME.contains("_testList_") && !JOB_NAME.contains("_iteration_")) {
-			def propsContent = rerunEntries.collect { key, value ->
-				"${key}=${value.toString().replace('&amp;', '&')}"
-			}.join('\n')
+			def propsContent = rerunEntries.collect { key, value -> "${key}=${value}" }.join('\n')
 			writeFile file: 'rerun.properties', text: propsContent
 			archiveArtifacts artifacts: 'rerun.properties', fingerprint: false, allowEmptyArchive: true
 		}

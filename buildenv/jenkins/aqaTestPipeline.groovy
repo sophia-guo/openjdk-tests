@@ -790,6 +790,37 @@ def remoteTriggerTemurinJCK (jobJdkVersion, jobPlatforms) {
                 def remoteJobUrl = "https://ci.eclipse.org/temurin-compliance/job/AQA_Test_Pipeline/${remoteBuildNumber}/"
                 def remoteBadgeUrl = getResultBadgeUrl(remoteJobResult)
 
+                // Build base rerun URL once — includes TARGET and CUSTOM_TARGET so the
+                // regex in getRemoteRerunLinks can replace them per entry from rerun.properties
+                def baseRerunParams = [
+                    SDK_RESOURCE: 'customized',
+                    TARGETS: target,
+                    JCK_GIT_REPO: jckGitRepo,
+                    CUSTOMIZED_SDK_URL: params.CUSTOMIZED_SDK_URL ?: '',
+                    JDK_VERSIONS: jobJdkVersion,
+                    PARALLEL: parallel,
+                    NUM_MACHINES: numMachines,
+                    PLATFORMS: platform,
+                    PIPELINE_DISPLAY_NAME: displayName,
+                    APPLICATION_OPTIONS: appOptions,
+                    LABEL_ADDITION: labelAddition,
+                    AUTO_AQA_GEN: autoAqaGen,
+                    RERUN_ITERATIONS: rerunIterations,
+                    RERUN_FAILURE: rerunFailure,
+                    EXTRA_OPTIONS: extraOptions,
+                    SETUP_JCK_RUN: setupJckRun,
+                    VARIANT: 'temurin',
+                    BUILD_TYPE: params.BUILD_TYPE,
+                    CUSTOM_TARGET: ''
+                ]
+                if (label) {
+                    baseRerunParams.LABEL = label
+                }
+                def baseQueryString = baseRerunParams.collect { k, v ->
+                    "${URLEncoder.encode(k, 'UTF-8')}=${URLEncoder.encode(v.toString(), 'UTF-8')}"
+                }.join('&')
+                def baseRerunUrl = "${env.JENKINS_URL}job/AQA_Test_Pipeline_JCK/parambuild?${baseQueryString}&MODE=RELAY"
+
                 // Build rerun section based on result:
                 //   SUCCESS  → no rerun link
                 //   UNSTABLE → per-target links from rerun.properties (rerun failed targets /
@@ -797,70 +828,18 @@ def remoteTriggerTemurinJCK (jobJdkVersion, jobPlatforms) {
                 //   FAILURE/ABORTED → generic [rerun] to retry the whole run
                 def rerunSection = ""
                 if (remoteJobResult == 'UNSTABLE') {
-                    def rerunLinks = getRemoteRerunLinks('AQA_Test_Pipeline', remoteBuildNumber)
+                    def rerunLinks = getRemoteRerunLinks('AQA_Test_Pipeline', remoteBuildNumber, baseRerunUrl)
                     if (rerunLinks) {
                         rerunLinks.each { linkLabel, linkUrl ->
                             rerunSection += """<a href="${linkUrl}" target="_blank" style="margin-left: 10px; font-size: 11px;">[${linkLabel}]</a>"""
                         }
                     } else {
                         // rerun.properties not produced — fall back to generic rerun link
-                        def rerunParams = [
-                            SDK_RESOURCE: 'customized',
-                            TARGETS: target,
-                            JCK_GIT_REPO: jckGitRepo,
-                            CUSTOMIZED_SDK_URL: params.CUSTOMIZED_SDK_URL ?: '',
-                            JDK_VERSIONS: jobJdkVersion,
-                            PARALLEL: parallel,
-                            NUM_MACHINES: numMachines,
-                            PLATFORMS: platform,
-                            PIPELINE_DISPLAY_NAME: displayName,
-                            APPLICATION_OPTIONS: appOptions,
-                            LABEL_ADDITION: labelAddition,
-                            AUTO_AQA_GEN: autoAqaGen,
-                            RERUN_ITERATIONS: rerunIterations,
-                            RERUN_FAILURE: rerunFailure,
-                            EXTRA_OPTIONS: extraOptions,
-                            SETUP_JCK_RUN: setupJckRun,
-                            VARIANT: 'temurin',
-                            BUILD_TYPE: params.BUILD_TYPE
-                        ]
-                        if (label) {
-                            rerunParams.LABEL = label
-                        }
-                        def queryString = rerunParams.collect { k, v ->
-                            "${URLEncoder.encode(k, 'UTF-8')}=${URLEncoder.encode(v.toString(), 'UTF-8')}"
-                        }.join('&')
-                        rerunSection = """<a href="${env.JENKINS_URL}job/AQA_Test_Pipeline_JCK/parambuild?${queryString}&MODE=RELAY" target="_blank" style="margin-left: 10px; font-size: 11px;">[rerun]</a>"""
+                        rerunSection = """<a href="${baseRerunUrl}" target="_blank" style="margin-left: 10px; font-size: 11px;">[rerun]</a>"""
                     }
                 } else if (remoteJobResult != 'SUCCESS') {
                     // FAILURE or ABORTED — generic rerun to retry the whole run
-                    def rerunParams = [
-                        SDK_RESOURCE: 'customized',
-                        TARGETS: target,
-                        JCK_GIT_REPO: jckGitRepo,
-                        CUSTOMIZED_SDK_URL: params.CUSTOMIZED_SDK_URL ?: '',
-                        JDK_VERSIONS: jobJdkVersion,
-                        PARALLEL: parallel,
-                        NUM_MACHINES: numMachines,
-                        PLATFORMS: platform,
-                        PIPELINE_DISPLAY_NAME: displayName,
-                        APPLICATION_OPTIONS: appOptions,
-                        LABEL_ADDITION: labelAddition,
-                        AUTO_AQA_GEN: autoAqaGen,
-                        RERUN_ITERATIONS: rerunIterations,
-                        RERUN_FAILURE: rerunFailure,
-                        EXTRA_OPTIONS: extraOptions,
-                        SETUP_JCK_RUN: setupJckRun,
-                        VARIANT: 'temurin',
-                        BUILD_TYPE: params.BUILD_TYPE
-                    ]
-                    if (label) {
-                        rerunParams.LABEL = label
-                    }
-                    def queryString = rerunParams.collect { k, v ->
-                        "${URLEncoder.encode(k, 'UTF-8')}=${URLEncoder.encode(v.toString(), 'UTF-8')}"
-                    }.join('&')
-                    rerunSection = """<a href="${env.JENKINS_URL}job/AQA_Test_Pipeline_JCK/parambuild?${queryString}&MODE=RELAY" target="_blank" style="margin-left: 10px; font-size: 11px;">[rerun]</a>"""
+                    rerunSection = """<a href="${baseRerunUrl}" target="_blank" style="margin-left: 10px; font-size: 11px;">[rerun]</a>"""
                 }
                 // SUCCESS: rerunSection remains "" — no rerun link shown
 
@@ -1010,52 +989,53 @@ def remoteTriggerTemurinJCKDirect() {
             def remoteJobUrl = "https://ci.eclipse.org/temurin-compliance/job/AQA_Test_Pipeline/${remoteBuildNumber}/"
             def remoteBadgeUrl = getResultBadgeUrl(remoteJobResult)
 
+            // Build base rerun URL once — includes TARGET and CUSTOM_TARGET so the
+            // regex in getRemoteRerunLinks can replace them per entry from rerun.properties
+            def baseRerunParams = [
+                SDK_RESOURCE: params.SDK_RESOURCE ?: 'customized',
+                TARGETS: target,
+                JCK_GIT_REPO: params.JCK_GIT_REPO ?: '',
+                CUSTOMIZED_SDK_URL: params.CUSTOMIZED_SDK_URL ?: '',
+                JDK_VERSIONS: jobJdkVersion,
+                PARALLEL: params.PARALLEL ?: 'None',
+                NUM_MACHINES: params.NUM_MACHINES ?: '1',
+                PLATFORMS: platform,
+                PIPELINE_DISPLAY_NAME: displayName,
+                APPLICATION_OPTIONS: params.APPLICATION_OPTIONS ?: '',
+                LABEL_ADDITION: params.LABEL_ADDITION ?: '',
+                AUTO_AQA_GEN: params.AUTO_AQA_GEN ?: 'false',
+                RERUN_ITERATIONS: params.RERUN_ITERATIONS ?: '1',
+                RERUN_FAILURE: params.RERUN_FAILURE ?: 'true',
+                EXTRA_OPTIONS: params.EXTRA_OPTIONS ?: '',
+                SETUP_JCK_RUN: params.SETUP_JCK_RUN ?: 'false',
+                VARIANT: 'temurin',
+                BUILD_TYPE: params.BUILD_TYPE,
+                CUSTOM_TARGET: ''
+            ]
+            if (params.LABEL) {
+                baseRerunParams.LABEL = params.LABEL
+            }
+            def baseQueryString = baseRerunParams.collect { k, v ->
+                "${URLEncoder.encode(k, 'UTF-8')}=${URLEncoder.encode(v.toString(), 'UTF-8')}"
+            }.join('&')
+            def baseRerunUrl = "${env.JENKINS_URL}job/AQA_Test_Pipeline_JCK/parambuild?${baseQueryString}&MODE=RELAY"
+
             // Build rerun section based on result:
             //   SUCCESS  → no rerun link
-            //   UNSTABLE → per-target links from rerun.properties (rerun failed targets /
-            //               rerun with _custom target); generic [rerun] if none found
+            //   UNSTABLE → per-target links from rerun.properties; generic [rerun] if none found
             //   FAILURE/ABORTED → generic [rerun] to retry the whole run
-            def buildRerunUrl = { ->
-                def rerunParams = [
-                    SDK_RESOURCE: params.SDK_RESOURCE ?: 'customized',
-                    TARGETS: target,
-                    JCK_GIT_REPO: params.JCK_GIT_REPO ?: '',
-                    CUSTOMIZED_SDK_URL: params.CUSTOMIZED_SDK_URL ?: '',
-                    JDK_VERSIONS: jobJdkVersion,
-                    PARALLEL: params.PARALLEL ?: 'None',
-                    NUM_MACHINES: params.NUM_MACHINES ?: '1',
-                    PLATFORMS: platform,
-                    PIPELINE_DISPLAY_NAME: displayName,
-                    APPLICATION_OPTIONS: params.APPLICATION_OPTIONS ?: '',
-                    LABEL_ADDITION: params.LABEL_ADDITION ?: '',
-                    AUTO_AQA_GEN: params.AUTO_AQA_GEN ?: 'false',
-                    RERUN_ITERATIONS: params.RERUN_ITERATIONS ?: '1',
-                    RERUN_FAILURE: params.RERUN_FAILURE ?: 'true',
-                    EXTRA_OPTIONS: params.EXTRA_OPTIONS ?: '',
-                    SETUP_JCK_RUN: params.SETUP_JCK_RUN ?: 'false',
-                    VARIANT: 'temurin',
-                    BUILD_TYPE: params.BUILD_TYPE
-                ]
-                if (params.LABEL) {
-                    rerunParams.LABEL = params.LABEL
-                }
-                def qs = rerunParams.collect { k, v ->
-                    "${URLEncoder.encode(k, 'UTF-8')}=${URLEncoder.encode(v.toString(), 'UTF-8')}"
-                }.join('&')
-                return "${env.JENKINS_URL}job/AQA_Test_Pipeline_JCK/parambuild?${qs}&MODE=RELAY"
-            }
             def rerunSection = ""
             if (remoteJobResult == 'UNSTABLE') {
-                def rerunLinks = getRemoteRerunLinks('AQA_Test_Pipeline', remoteBuildNumber)
+                def rerunLinks = getRemoteRerunLinks('AQA_Test_Pipeline', remoteBuildNumber, baseRerunUrl)
                 if (rerunLinks) {
                     rerunLinks.each { linkLabel, linkUrl ->
                         rerunSection += """<a href="${linkUrl}" target="_blank" style="margin-left: 10px; font-size: 11px;">[${linkLabel}]</a>"""
                     }
                 } else {
-                    rerunSection = """<a href="${buildRerunUrl()}" target="_blank" style="margin-left: 10px; font-size: 11px;">[rerun]</a>"""
+                    rerunSection = """<a href="${baseRerunUrl}" target="_blank" style="margin-left: 10px; font-size: 11px;">[rerun]</a>"""
                 }
             } else if (remoteJobResult != 'SUCCESS') {
-                rerunSection = """<a href="${buildRerunUrl()}" target="_blank" style="margin-left: 10px; font-size: 11px;">[rerun]</a>"""
+                rerunSection = """<a href="${baseRerunUrl}" target="_blank" style="margin-left: 10px; font-size: 11px;">[rerun]</a>"""
             }
             // SUCCESS: rerunSection remains "" — no rerun link shown
 
@@ -1075,11 +1055,14 @@ def remoteTriggerTemurinJCKDirect() {
 }
 
 // Fetch rerun links from rerun.properties archived on the private pipeline job.
-// The private aqaTestPipeline re-archives rerun.properties from each TCK test job
-// under <TEST_JOB_NAME>/<buildId>/rerun.properties. This function copies all matching
-// files and merges them into a single { label -> url } map for the public job to use.
-// Returns an empty map when no rerun.properties was archived (SUCCESS run, etc.).
-def getRemoteRerunLinks(remoteJobName, remoteBuildNumber) {
+// rerun.properties stores only the TARGET/CUSTOM_TARGET overrides needed per rerun entry:
+//   TARGET.0=testList TESTLIST=jckruntime_0,jckcompiler_1
+//   TARGET.1=jckruntime_custom
+//   CUSTOM_TARGET.1=api/java/net/InetAddressTest.java api/java/net/SocketTest.java
+// This function reads all such files, pairs TARGET.n with CUSTOM_TARGET.n, and builds
+// a full rerun URL for each entry by applying the overrides onto the base fallback URL.
+// Returns a { label -> fullUrl } map, or empty map if no rerun.properties was found.
+def getRemoteRerunLinks(remoteJobName, remoteBuildNumber, baseRerunUrl) {
     def rerunLinks = [:]
     try {
         copyArtifacts(
@@ -1092,7 +1075,25 @@ def getRemoteRerunLinks(remoteJobName, remoteBuildNumber) {
         def files = findFiles(glob: "remote_rerun/${remoteBuildNumber}/**/rerun.properties")
         files.each { f ->
             def props = readProperties file: f.path
-            props.each { key, value -> rerunLinks[key] = value }
+            // Collect all unique indices from TARGET.n keys
+            def indices = props.keySet()
+                .findAll { it.startsWith("TARGET.") }
+                .collect { it.tokenize('.')[1].toInteger() }
+                .sort()
+            indices.each { idx ->
+                def target     = props["TARGET.${idx}"]
+                def customTarget = props["CUSTOM_TARGET.${idx}"] ?: ""
+                if (!target) return
+                // Build the full URL: start from base, override TARGET and CUSTOM_TARGET
+                def rerunUrl = baseRerunUrl
+                    .replaceAll(/(?i)([?&])TARGET=[^&]*/, "\$1TARGET=${URLEncoder.encode(target, 'UTF-8')}")
+                if (customTarget) {
+                    rerunUrl = rerunUrl
+                        .replaceAll(/(?i)([?&])CUSTOM_TARGET=[^&]*/, "\$1CUSTOM_TARGET=${URLEncoder.encode(customTarget, 'UTF-8')}")
+                }
+                def label = target.contains("TESTLIST") ? "failed_test_targets" : target
+                rerunLinks[label] = rerunUrl
+            }
         }
         echo "Found ${rerunLinks.size()} rerun link(s) from remote build ${remoteBuildNumber}"
     } catch (Exception e) {
