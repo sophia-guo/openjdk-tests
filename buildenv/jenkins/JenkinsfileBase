@@ -1611,8 +1611,12 @@ def addFailedTestsGrinderLink(paths="") {
 		// Archive all rerun URLs as a properties file so upstream relay jobs (e.g. aqaTestPipeline)
 		// can retrieve them. Only write for the direct parent job — not for _rerun/_testList_/_iteration_
 		// child jobs which are second-level and their rerun links are not needed by the pipeline.
+		// Note: env.RERUN_LINK uses &amp; as separator (correct for HTML href), so we unescape to
+		// plain & so the URLs are valid when read back by readProperties on the public Jenkins.
 		if (rerunEntries && !JOB_NAME.contains("_rerun") && !JOB_NAME.contains("_testList_") && !JOB_NAME.contains("_iteration_")) {
-			def propsContent = rerunEntries.collect { key, value -> "${key}=${value}" }.join('\n')
+			def propsContent = rerunEntries.collect { key, value ->
+				"${key}=${value.toString().replace('&amp;', '&')}"
+			}.join('\n')
 			writeFile file: 'rerun.properties', text: propsContent
 			archiveArtifacts artifacts: 'rerun.properties', fingerprint: false, allowEmptyArchive: true
 		}
