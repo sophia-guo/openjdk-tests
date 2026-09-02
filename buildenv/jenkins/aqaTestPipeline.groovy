@@ -830,8 +830,8 @@ def remoteTriggerTemurinJCK (jobJdkVersion, jobPlatforms) {
                 if (remoteJobResult == 'UNSTABLE') {
                     def rerunLinks = getRemoteRerunLinks('AQA_Test_Pipeline', remoteBuildNumber, baseRerunUrl)
                     if (rerunLinks) {
-                        rerunLinks.each { linkLabel, linkUrl ->
-                            rerunSection += """<a href="${linkUrl}" target="_blank" style="margin-left: 10px; font-size: 11px;">[${linkLabel}]</a>"""
+                        rerunLinks.each { entry ->
+                            rerunSection += """<br><a href="${entry[1]}" target="_blank">${entry[0]}</a>"""
                         }
                     } else {
                         // rerun.properties not produced — fall back to generic rerun link
@@ -1028,8 +1028,8 @@ def remoteTriggerTemurinJCKDirect() {
             if (remoteJobResult == 'UNSTABLE') {
                 def rerunLinks = getRemoteRerunLinks('AQA_Test_Pipeline', remoteBuildNumber, baseRerunUrl)
                 if (rerunLinks) {
-                    rerunLinks.each { linkLabel, linkUrl ->
-                        rerunSection += """<a href="${linkUrl}" target="_blank" style="margin-left: 10px; font-size: 11px;">[${linkLabel}]</a>"""
+                    rerunLinks.each { entry ->
+                        rerunSection += """<br><a href="${entry[1]}" target="_blank">${entry[0]}</a>"""
                     }
                 } else {
                     rerunSection = """<a href="${baseRerunUrl}" target="_blank" style="margin-left: 10px; font-size: 11px;">[rerun]</a>"""
@@ -1054,16 +1054,22 @@ def remoteTriggerTemurinJCKDirect() {
     }
 }
 
-// Fetch rerun links from rerun.properties archived on the private pipeline job.
-// rerun.properties stores only the TARGET/CUSTOM_TARGET overrides needed per rerun entry:
+// Fetch rerun entries from rerun.properties archived on the private pipeline job.
+// rerun.properties stores indexed TARGET/CUSTOM_TARGET overrides:
 //   TARGET.0=testList TESTLIST=jckruntime_0,jckcompiler_1
 //   TARGET.1=jckruntime_custom
 //   CUSTOM_TARGET.1=api/java/net/InetAddressTest.java api/java/net/SocketTest.java
-// This function reads all such files, pairs TARGET.n with CUSTOM_TARGET.n, and builds
-// a full rerun URL for each entry by applying the overrides onto the base fallback URL.
-// Returns a { label -> fullUrl } map, or empty map if no rerun.properties was found.
+//   TARGET.2=jckcompiler_custom
+//   CUSTOM_TARGET.2=compiler/Def_Assign/def_assign_blank_final_field_1
+//
+// Returns a list of [description, url] pairs (order preserved), e.g.:
+//   ["Rerun in Grinder with failed test targets",
+//    "https://...&TARGET=testList+TESTLIST=jckruntime_0%2Cjckcompiler_1&CUSTOM_TARGET="]
+//   ["Rerun failed jckruntime test cases with jckruntime_custom target",
+//    "https://...&TARGET=jckruntime_custom&CUSTOM_TARGET=api%2Fjava%2Fnet%2F..."]
+// Returns empty list if no rerun.properties was found (SUCCESS run, etc.).
 def getRemoteRerunLinks(remoteJobName, remoteBuildNumber, baseRerunUrl) {
-    def rerunLinks = [:]
+    def rerunLinks = []
     try {
         copyArtifacts(
             projectName: remoteJobName,
@@ -1075,24 +1081,32 @@ def getRemoteRerunLinks(remoteJobName, remoteBuildNumber, baseRerunUrl) {
         def files = findFiles(glob: "remote_rerun/${remoteBuildNumber}/**/rerun.properties")
         files.each { f ->
             def props = readProperties file: f.path
-            // Collect all unique indices from TARGET.n keys
+            // Collect all indices from TARGET.n keys, sorted
             def indices = props.keySet()
                 .findAll { it.startsWith("TARGET.") }
                 .collect { it.tokenize('.')[1].toInteger() }
                 .sort()
             indices.each { idx ->
-                def target     = props["TARGET.${idx}"]
+                def target      = props["TARGET.${idx}"]
                 def customTarget = props["CUSTOM_TARGET.${idx}"] ?: ""
                 if (!target) return
-                // Build the full URL: start from base, override TARGET and CUSTOM_TARGET
+                // Build URL: replace TARGET and CUSTOM_TARGET in base URL
                 def rerunUrl = baseRerunUrl
                     .replaceAll(/(?i)([?&])TARGET=[^&]*/, "\$1TARGET=${URLEncoder.encode(target, 'UTF-8')}")
                 if (customTarget) {
                     rerunUrl = rerunUrl
                         .replaceAll(/(?i)([?&])CUSTOM_TARGET=[^&]*/, "\$1CUSTOM_TARGET=${URLEncoder.encode(customTarget, 'UTF-8')}")
                 }
-                def label = target.contains("TESTLIST") ? "failed_test_targets" : target
-                rerunLinks[label] = rerunUrl
+                // Generate description text matching the private job's link text
+                def description
+                if (target.contains("TESTLIST")) {
+                    description = "Rerun in Grinder with failed test targets"
+                } else {
+                    // target is e.g. "jckruntime_custom" — extract "jckruntime" for the description
+                    def baseName = target.replace("_custom", "")
+                    description = "Rerun failed ${baseName} test cases with ${target} target"
+                }
+                rerunLinks << [description, rerunUrl]
             }
         }
         echo "Found ${rerunLinks.size()} rerun link(s) from remote build ${remoteBuildNumber}"
