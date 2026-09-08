@@ -67,11 +67,6 @@ pipeline {
             defaultValue: '',
             description: 'GitHub issue URL (e.g. https://github.com/adoptium/aqa-tests/issues/7612)'
         )
-        choice(
-            name: 'JENKINS_CREDENTIAL',
-            choices: ['eclipse_temurin_bot_email_and_token'],
-            description: 'Jenkins credential (username + API token) for internal Jenkins REST API calls'
-        )
         credentials(
             name: 'GITHUB_CREDENTIAL',
             defaultValue: 'github-bot-token',
@@ -79,6 +74,13 @@ pipeline {
             credentialType: 'org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl',
             required: false
         )
+    }
+
+    environment {
+        // Bind JENKINS_AUTH (user:token) at pipeline level so it is available
+        // to all sh steps including those called from helper functions.
+        // The value is masked in logs by Jenkins automatically.
+        JENKINS_AUTH = credentials('eclipse_temurin_bot_email_and_token')
     }
 
     options {
@@ -97,7 +99,6 @@ pipeline {
                     def pipelineName  = params.PIPELINE_NAME?.trim()
                     def buildNumbers  = params.BUILD_NUMBERS?.trim()
                     def testJob       = params.TEST_PIPELINE_JOB?.trim() ?: 'AQA_Test_Pipeline_RELEASE'
-                    def jenkinsCred   = params.JENKINS_CREDENTIAL?.trim() ?: 'jenkins-bot-token'
 
                     if (!pipelineName) { error "PIPELINE_NAME parameter must be set." }
                     if (!buildNumbers) { error "BUILD_NUMBERS parameter must be set." }
@@ -109,7 +110,7 @@ pipeline {
                     def jobPath = testJob.split('/').join('/job/')
                     // Fetch the list of all build numbers for the job.
                     def allBuildsJson = fetchJson(
-                        "${env.JENKINS_URL}job/${jobPath}/api/json?tree=builds%5Bnumber%5D%7B0,20%7D",
+                        "${env.JENKINS_URL}job/${jobPath}/api/json?tree=builds%5Bnumber%5D",
                         "build list of '${testJob}'"
                     )
                     if (!allBuildsJson || !allBuildsJson.builds) {
@@ -122,7 +123,6 @@ pipeline {
                     // builds, one per platform. Each zip is named <platform>.zip.
                     def matchedBuilds = []
 
-                    withCredentials([usernameColonPassword(credentialsId: jenkinsCred, variable: 'JENKINS_AUTH')]) {
                     allBuildsJson.builds.each { b ->
                         def num = b.number as int
                         def buildApiUrl = "${env.JENKINS_URL}job/${jobPath}/${num}/api/json" +
@@ -145,7 +145,6 @@ pipeline {
                         echo "  Matched build #${num} — platform: '${platform}'"
                         matchedBuilds << [number: num, platform: platform]
                     }
-                    } // end withCredentials
 
                     if (matchedBuilds.isEmpty()) {
                         echo "No matching builds found in '${testJob}'."
