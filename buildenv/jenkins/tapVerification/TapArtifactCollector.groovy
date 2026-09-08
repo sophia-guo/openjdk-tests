@@ -67,12 +67,10 @@ pipeline {
             defaultValue: '',
             description: 'GitHub issue URL (e.g. https://github.com/adoptium/aqa-tests/issues/7612)'
         )
-        credentials(
+        choice(
             name: 'JENKINS_CREDENTIAL',
-            defaultValue: 'jenkins-bot-token',
-            description: 'Username with password credential for internal Jenkins REST API calls (user + API token)',
-            credentialType: 'com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl',
-            required: true
+            choices: ['eclipse_temurin_bot_email_and_token'],
+            description: 'Jenkins credential (username + API token) for internal Jenkins REST API calls'
         )
         credentials(
             name: 'GITHUB_CREDENTIAL',
@@ -128,7 +126,7 @@ pipeline {
                     allBuildsJson.builds.each { b ->
                         def num = b.number as int
                         def buildApiUrl = "${env.JENKINS_URL}job/${jobPath}/${num}/api/json" +
-                            "?tree=number,displayName,description,actions%5Bcauses%5BupstreamProject,upstreamBuild,shortDescription%5D%5D"
+                            "?tree=number,displayName,description,actions%5Bcauses%5BupstreamProject,upstreamBuild,upstreamUrl,shortDescription%5D%5D"
                         // AQA_Test_Pipeline_RELEASE is public — no auth needed here.
                         def info = fetchJson(buildApiUrl, "'${testJob}' #${num}")
                         if (!info) return
@@ -340,15 +338,18 @@ def isBuildTriggeredBy(def buildInfo, String pipelineName, Set targetBuildNums, 
             }
         }
 
-        // No match at this level — climb one level up via the first structured upstream cause.
-        def parentCause = allCauses.find { it?.upstreamProject && it?.upstreamBuild != null }
+        // No match at this level — climb one level up using upstreamUrl (the correct
+        // job path as Jenkins knows it) + upstreamBuild number.
+        def parentCause = allCauses.find { it?.upstreamUrl && it?.upstreamBuild != null }
         if (!parentCause) break
 
-        def parentProj     = parentCause.upstreamProject.toString()
+        def parentProj     = parentCause.upstreamProject?.toString() ?: ''
         def parentBuildNum = parentCause.upstreamBuild.toString()
-        def parentJobPath  = parentProj.split('/').join('/job/')
-        def parentApiUrl   = "${env.JENKINS_URL}job/${parentJobPath}/${parentBuildNum}/api/json" +
-            "?tree=actions%5Bcauses%5BupstreamProject,upstreamBuild,shortDescription%5D%5D"
+        // upstreamUrl is already a valid relative Jenkins path, e.g.
+        // "job/build-scripts/job/jobs/job/release/job/jobs/job/jdk8u/job/jdk8u-release-linux-arm-temurin/"
+        def parentJobUrl   = parentCause.upstreamUrl.toString().replaceAll('/$', '')
+        def parentApiUrl   = "${env.JENKINS_URL}${parentJobUrl}/${parentBuildNum}/api/json" +
+            "?tree=actions%5Bcauses%5BupstreamProject,upstreamBuild,upstreamUrl,shortDescription%5D%5D"
         def parentInfo = fetchJson(parentApiUrl, "'${parentProj}' #${parentBuildNum}", auth)
         if (!parentInfo) break
         current = parentInfo
