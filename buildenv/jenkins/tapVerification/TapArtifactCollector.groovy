@@ -171,7 +171,7 @@ pipeline {
                         }
                     }
 
-                    archiveArtifacts artifacts: '*.zip', allowEmptyArchive: true
+                    // platform.zip files are intermediate — not archived here; merged into *.tar.gz in Stage 3.
                 }
             }
         }
@@ -273,7 +273,7 @@ pipeline {
                         }
                     }
 
-                    archiveArtifacts artifacts: 'grinder_*.zip', allowEmptyArchive: true
+                    // grinder_*.zip files are intermediate — not archived here; merged into *.tar.gz in Stage 3.
                 }
             }
         }
