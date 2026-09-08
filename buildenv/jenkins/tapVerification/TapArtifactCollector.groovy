@@ -216,18 +216,24 @@ pipeline {
                         }
 
                         // Helper: download all .tap.txt attachments from a Markdown body.
-                        // Matches any github.com URL ending in .tap.txt (covers both
-                        // repo-files and user-attachments domains).
+                        // Mirrors the logic in TapCollection.groovy: only processes lines
+                        // that are Markdown attachment links ending with ')' and contain
+                        // a github.com files URL. Filters to .tap.txt files only.
                         def downloadTapTxt = { body ->
                             if (!body) return
                             body.split(/\r?\n/).each { line ->
-                                def urlMatcher = (line =~ /https:\/\/github\.com\/[^\s\)\]>'"]+\.tap\.txt/)
-                                urlMatcher.each {
-                                    def url      = it[0].replaceAll(/[\)\]>'"]+$/, '')
-                                    def filename = url.tokenize('/').last()
-                                    echo "    Downloading ${filename} ..."
-                                    sh "curl -Lsf -o '${tapsDir}/${filename}' '${url}'"
-                                }
+                                if (!line.endsWith(')')) return
+                                if (!line.contains('https://github.com/user-attachments/files/') &&
+                                    !line.contains("https://github.com/${repoSlug}/files/")) return
+                                // Extract URL from Markdown [name](url) — take whichever domain matches
+                                def urlStart = line.indexOf('(https://github.com/user-attachments/files/')
+                                if (urlStart < 0) urlStart = line.indexOf("(https://github.com/${repoSlug}/files/")
+                                if (urlStart < 0) return
+                                def url      = line.substring(urlStart + 1, line.lastIndexOf(')'))
+                                if (!url.endsWith('.tap.txt')) return
+                                def filename = url.split('/').last()
+                                echo "    Downloading ${filename} ..."
+                                sh "curl -Lsf -o '${tapsDir}/${filename}' '${url}'"
                             }
                         }
 
