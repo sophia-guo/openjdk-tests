@@ -68,6 +68,11 @@ pipeline {
             description: 'GitHub issue URL (e.g. https://github.com/adoptium/aqa-tests/issues/7612)'
         )
         string(
+            name: 'JENKINS_CREDENTIAL',
+            defaultValue: 'jenkins-bot-token',
+            description: 'Jenkins credential ID (username:token) for internal Jenkins REST API calls'
+        )
+        string(
             name: 'GITHUB_CREDENTIAL',
             defaultValue: 'github-bot-token',
             description: 'Jenkins credential ID for the GitHub API token'
@@ -90,6 +95,7 @@ pipeline {
                     def pipelineName  = params.PIPELINE_NAME?.trim()
                     def buildNumbers  = params.BUILD_NUMBERS?.trim()
                     def testJob       = params.TEST_PIPELINE_JOB?.trim() ?: 'AQA_Test_Pipeline_RELEASE'
+                    def jenkinsCred   = params.JENKINS_CREDENTIAL?.trim() ?: 'jenkins-bot-token'
 
                     if (!pipelineName) { error "PIPELINE_NAME parameter must be set." }
                     if (!buildNumbers) { error "BUILD_NUMBERS parameter must be set." }
@@ -114,15 +120,18 @@ pipeline {
                     // builds, one per platform. Each zip is named <platform>.zip.
                     def matchedBuilds = []
 
+                    withCredentials([usernameColonPassword(credentialsId: jenkinsCred, variable: 'JENKINS_AUTH')]) {
                     allBuildsJson.builds.each { b ->
                         def num = b.number as int
                         def buildApiUrl = "${env.JENKINS_URL}job/${jobPath}/${num}/api/json" +
                             "?tree=number,displayName,description,actions%5Bcauses%5BupstreamProject,upstreamBuild,shortDescription%5D%5D"
-                        def info = fetchJson(buildApiUrl, "'${testJob}' #${num}")
+                        def info = fetchJson(buildApiUrl, "'${testJob}' #${num}", env.JENKINS_AUTH)
                         if (!info) return
 
                         // Gate: cause chain must match PIPELINE_NAME + one of BUILD_NUMBERS.
-                        if (!isBuildTriggeredBy(info, pipelineName, targetBuildNums)) return
+                        // The intermediate build-scripts job requires auth to fetch, so pass
+                        // credentials through to the recursive cause-chain walker.
+                        if (!isBuildTriggeredBy(info, pipelineName, targetBuildNums, 3, env.JENKINS_AUTH)) return
 
                         // Platform always comes from the build's own display name / description,
                         // since each build is for exactly one platform regardless of which
@@ -134,6 +143,7 @@ pipeline {
                         echo "  Matched build #${num} — platform: '${platform}'"
                         matchedBuilds << [number: num, platform: platform]
                     }
+                    } // end withCredentials
 
                     if (matchedBuilds.isEmpty()) {
                         echo "No matching builds found in '${testJob}'."
@@ -261,11 +271,13 @@ pipeline {
 
 /**
  * Fetch a URL with curl and return a parsed JSON map.
+ * @param auth  Optional "user:token" string for Basic auth (-u flag).  Pass null to skip.
  * Returns null on failure.
  */
-def fetchJson(String url, String label) {
+def fetchJson(String url, String label, String auth = null) {
     try {
-        def json = sh(script: "curl -sf --connect-timeout 10 '${url}'", returnStdout: true).trim()
+        def authFlag = auth ? "-u '${auth}'" : ''
+        def json = sh(script: "curl -sf --connect-timeout 10 ${authFlag} '${url}'", returnStdout: true).trim()
         if (!json) { echo "Empty response for ${label}"; return null }
         return readJSON(text: json)
     } catch (Exception e) {
@@ -275,35 +287,61 @@ def fetchJson(String url, String label) {
 }
 
 /**
- * Check whether a build was triggered (via cause chain) by the given upstream
- * pipeline name + one of the target build numbers.
+ * Check whether a build was triggered (directly or indirectly) by the given
+ * upstream pipeline name + one of the target build numbers.
  *
- * Causes are nested inside actions[].causes[].
- * Two forms are recognised:
+ * AQA_Test_Pipeline_RELEASE is not triggered directly by release-openjdk*-pipeline;
+ * there is at least one intermediate build-scripts job in between.  This function
+ * therefore walks the cause chain upward (up to maxDepth levels) by fetching each
+ * intermediate upstream build via the REST API until it either finds a match or
+ * exhausts the chain.
+ *
+ * At each level two match forms are checked:
  *   • Structured: upstreamProject contains pipelineName AND upstreamBuild is in targetBuildNums.
  *   • Text fallback (shortDescription): "Started by upstream project … build number 130"
+ *
+ * @param auth  "user:token" passed to curl -u for authenticated fetches of internal jobs.
  */
-def isBuildTriggeredBy(def buildInfo, String pipelineName, Set targetBuildNums) {
-    def actions = buildInfo?.actions ?: []
-    def allCauses = []
-    actions.each { action -> allCauses.addAll(action?.causes ?: []) }
+def isBuildTriggeredBy(def buildInfo, String pipelineName, Set targetBuildNums, int maxDepth = 3, String auth = null) {
+    def current = buildInfo
+    for (int depth = 0; depth < maxDepth; depth++) {
+        def actions = current?.actions ?: []
+        def allCauses = []
+        actions.each { action -> allCauses.addAll(action?.causes ?: []) }
 
-    for (cause in allCauses) {
-        // Structured cause fields
-        def proj  = cause?.upstreamProject?.toString() ?: ''
-        def upNum = cause?.upstreamBuild?.toString()   ?: ''
-        if (proj.contains(pipelineName) && targetBuildNums.contains(upNum)) {
-            return true
-        }
-        // Text fallback: "Started by upstream project build-scripts » release-openjdk8-pipeline build number 130"
-        def shortDesc = cause?.shortDescription?.toString() ?: ''
-        if (shortDesc.contains(pipelineName)) {
-            for (n in targetBuildNums) {
-                if (shortDesc.contains("build number ${n}") || shortDesc.contains("#${n}")) {
-                    return true
+        if (allCauses.isEmpty()) break
+
+        for (cause in allCauses) {
+            def proj      = cause?.upstreamProject?.toString() ?: ''
+            def upNumStr  = cause?.upstreamBuild?.toString()   ?: ''
+            def shortDesc = cause?.shortDescription?.toString() ?: ''
+
+            // Direct structured match
+            if (proj.contains(pipelineName) && targetBuildNums.contains(upNumStr)) {
+                return true
+            }
+            // Text fallback in shortDescription
+            if (shortDesc.contains(pipelineName)) {
+                for (n in targetBuildNums) {
+                    if (shortDesc.contains("build number ${n}") || shortDesc.contains("#${n}")) {
+                        return true
+                    }
                 }
             }
         }
+
+        // No match at this level — climb one level up via the first structured upstream cause.
+        def parentCause = allCauses.find { it?.upstreamProject && it?.upstreamBuild != null }
+        if (!parentCause) break
+
+        def parentProj     = parentCause.upstreamProject.toString()
+        def parentBuildNum = parentCause.upstreamBuild.toString()
+        def parentJobPath  = parentProj.split('/').join('/job/')
+        def parentApiUrl   = "${env.JENKINS_URL}job/${parentJobPath}/${parentBuildNum}/api/json" +
+            "?tree=actions%5Bcauses%5BupstreamProject,upstreamBuild,shortDescription%5D%5D"
+        def parentInfo = fetchJson(parentApiUrl, "'${parentProj}' #${parentBuildNum}", auth)
+        if (!parentInfo) break
+        current = parentInfo
     }
     return false
 }
