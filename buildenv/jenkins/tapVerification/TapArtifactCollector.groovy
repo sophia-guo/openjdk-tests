@@ -140,7 +140,12 @@ pipeline {
                         return
                     }
 
-                    echo "Found ${matchedBuilds.size()} matching build(s). Downloading artifacts..."
+                    echo "=== Found ${matchedBuilds.size()} matching build(s) ==="
+                    matchedBuilds.each { entry ->
+                        def buildUrl = "${env.JENKINS_URL}job/${jobPath}/${entry.number}/"
+                        echo "  #${entry.number} — platform: '${entry.platform}' — ${buildUrl}"
+                    }
+                    echo "Downloading artifacts..."
 
                     matchedBuilds.each { entry ->
                         def bNum     = entry.number
