@@ -111,7 +111,7 @@ pipeline {
                     def jobPath = testJob.split('/').join('/job/')
                     // Fetch the list of all build numbers for the job.
                     def allBuildsJson = fetchJson(
-                        "${env.JENKINS_URL}job/${jobPath}/api/json?tree=builds%5Bnumber%5D",
+                        "${env.JENKINS_URL}job/${jobPath}/api/json?tree=builds%5Bnumber%5D%7B0,20%7D",
                         "build list of '${testJob}'"
                     )
                     if (!allBuildsJson || !allBuildsJson.builds) {
