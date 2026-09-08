@@ -129,12 +129,12 @@ pipeline {
                         def num = b.number as int
                         def buildApiUrl = "${env.JENKINS_URL}job/${jobPath}/${num}/api/json" +
                             "?tree=number,displayName,description,actions%5Bcauses%5BupstreamProject,upstreamBuild,shortDescription%5D%5D"
-                        def info = fetchJson(buildApiUrl, "'${testJob}' #${num}", env.JENKINS_AUTH)
+                        // AQA_Test_Pipeline_RELEASE is public — no auth needed here.
+                        def info = fetchJson(buildApiUrl, "'${testJob}' #${num}")
                         if (!info) return
 
                         // Gate: cause chain must match PIPELINE_NAME + one of BUILD_NUMBERS.
-                        // The intermediate build-scripts job requires auth to fetch, so pass
-                        // credentials through to the recursive cause-chain walker.
+                        // Auth is only needed when fetching the intermediate build-scripts parent build.
                         if (!isBuildTriggeredBy(info, pipelineName, targetBuildNums, 3, env.JENKINS_AUTH)) return
 
                         // Platform always comes from the build's own display name / description,
