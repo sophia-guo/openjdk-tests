@@ -341,8 +341,18 @@ pipeline {
  */
 def fetchJson(String url, String label, String auth = null) {
     try {
-        def authFlag = auth ? "-u '${auth}'" : ''
-        def json = sh(script: "curl -sf --connect-timeout 10 ${authFlag} '${url}'", returnStdout: true).trim()
+        def json
+        if (auth) {
+            // Pass credentials via environment variable to avoid secret interpolation warning.
+            // curl reads CURL_AUTH from the environment; never interpolated into the script string.
+            json = sh(
+                script: "curl -sf --connect-timeout 10 -u \"\$CURL_AUTH\" '${url}'",
+                returnStdout: true,
+                env: ["CURL_AUTH=${auth}"]
+            ).trim()
+        } else {
+            json = sh(script: "curl -sf --connect-timeout 10 '${url}'", returnStdout: true).trim()
+        }
         if (!json) { echo "Empty response for ${label}"; return null }
         return readJSON(text: json)
     } catch (Exception e) {
