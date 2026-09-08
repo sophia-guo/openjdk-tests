@@ -2,45 +2,78 @@
 /*
  * TapArtifactCollector.groovy
  *
- * Two-stage pipeline that:
+ * NEW STRATEGY — Reverse-engineering the trigger chain
+ * =====================================================
+ * Traditional TAP collection tools (e.g. TapCollection.groovy) work by tracing
+ * FORWARD: starting from a known upstream pipeline run, following its child jobs
+ * down to the test jobs, and collecting results.  That approach requires direct
+ * knowledge of the job topology and is tightly coupled to how the upstream
+ * pipeline fans out its work.
  *
- * Stage 1 – Collect TAP artifacts from Jenkins
- * -----------------------------------------------
- * Scans all builds of TEST_PIPELINE_JOB (default: AQA_Test_Pipeline_RELEASE)
- * and finds every build that was triggered (directly or indirectly) by one of
- * the specified upstream builds.  A match is detected in two ways:
- *   a) The build's cause chain contains an upstream project whose name ends
- *      with PIPELINE_NAME and whose build number is in BUILD_NUMBERS.
- *   b) The build's display name description ends with a platform token that
- *      also matches  "<PIPELINE_NAME> ... #<N>" — useful when cause info is
- *      not set but the display name follows the convention:
- *        "#346 - jdk8 : jdk8u504-b01_adopt_RELEASE : x86-64_windows"
+ * This pipeline takes a completely NEW approach: REVERSE ENGINEERING.
+ * Instead of tracing forward from the upstream pipeline, it inspects each
+ * AQA_Test_Pipeline_RELEASE build and traces BACKWARD through its cause chain
+ * to determine whether it was ultimately triggered by the specified upstream
+ * pipeline run.  This decouples the collector from the upstream topology — it
+ * does not need to know how the release pipeline fans out; it simply asks each
+ * test pipeline build "were you caused by this release?".
  *
- * For every matched build the entire artifact tree is zipped and archived as
- * Jenkins build artifacts of THIS job, named after the platform suffix of the
- * display name (e.g. "x86-64_windows.zip").
+ * This strategy is made possible by the new test job implementation in which
+ * AQA_Test_Pipeline_RELEASE records full cause provenance through the
+ * intermediate build-scripts jobs, allowing the origin pipeline and build
+ * number to be recovered by walking up the cause chain via the Jenkins REST API.
  *
- * Stage 2 – Collect TAP attachments from GitHub
- * -----------------------------------------------
- * Given a GitHub issue URL (GITHUB_ISSUE_URL), downloads every attachment
- * whose URL ends in ".tap.txt" from:
- *   • The issue body itself
- *   • All comments on the issue
- *   • Any child issues whose numbers are listed in the issue description in
- *     the form "- #<N>" or "- https://github.com/.../issues/<N>"
+ * Pipeline overview
+ * -----------------
+ * Stage 0 – Clean Workspace
+ *   Wipes the workspace before every run to prevent artifacts from a previous
+ *   run polluting the current one.
  *
- * All downloaded files are archived as Jenkins build artifacts.
+ * Stage 1 – Collect Jenkins Artifacts  [REVERSE-ENGINEERING]
+ *   Scans all builds of TEST_PIPELINE_JOB (default: AQA_Test_Pipeline_RELEASE)
+ *   and identifies every build whose cause chain traces back to the specified
+ *   PIPELINE_NAME + BUILD_NUMBERS.  Matching works in two steps:
+ *
+ *   Step A — check direct cause (no auth required):
+ *     Each AQA_Test_Pipeline_RELEASE build records its immediate upstream cause
+ *     (an intermediate build-scripts per-platform job).  If that job itself
+ *     matches PIPELINE_NAME + build number, we are done.
+ *
+ *   Step B — climb one level (auth required):
+ *     The immediate upstream is normally a per-platform build-scripts job
+ *     (e.g. jdk8u-release-linux-arm-temurin), not the top-level release pipeline.
+ *     The pipeline fetches that intermediate build via the Jenkins REST API
+ *     (using upstreamUrl for the correct path) and checks ITS cause, which
+ *     contains the original release-openjdk*-pipeline trigger.
+ *
+ *   For each matched build, the platform name is read from that build's own
+ *   displayName (last colon-separated token, e.g. "s390x_linux") and its full
+ *   artifact tree is downloaded as <platform>.zip.
+ *
+ * Stage 2 – Collect GitHub TAP Attachments
+ *   Given a GitHub triage issue URL, downloads all .tap.txt file attachments
+ *   from the main issue and each child issue linked in its description.
+ *   Child issues follow the naming convention
+ *     "Triage Automated Tests for <release> <jdk> - <platform>"
+ *   so the platform is extracted from the title (or body "Platform:" line) and
+ *   attachments are grouped per platform as grinder_<platform>.zip.
+ *
+ * Stage 3 – Merge Artifacts
+ *   Merges the Jenkins artifacts (<platform>.zip) and GitHub attachments
+ *   (grinder_<platform>.zip) for each platform into a single <platform>.tar.gz.
+ *   Platforms that only have one source are still converted to .tar.gz.
+ *   Only the final <platform>.tar.gz files are archived as build artifacts.
  *
  * Parameters
  * ----------
- *   PIPELINE_NAME        Upstream pipeline name to match in cause/description.
+ *   PIPELINE_NAME        Upstream release pipeline name to match.
  *                        Example: release-openjdk8-pipeline
- *   BUILD_NUMBERS        Comma-separated upstream build numbers.
+ *   BUILD_NUMBERS        Comma-separated build numbers of that pipeline.
  *                        Example: 130,131
  *   TEST_PIPELINE_JOB    Jenkins job to scan.  Default: AQA_Test_Pipeline_RELEASE
- *   GITHUB_ISSUE_URL     GitHub issue URL.
+ *   GITHUB_ISSUE_URL     Main GitHub triage issue URL.
  *                        Example: https://github.com/adoptium/aqa-tests/issues/7612
- *   GITHUB_CREDENTIAL    Jenkins credential ID for the GitHub token.
+ *   GITHUB_CREDENTIAL    Secret text credential for the GitHub API token.
  */
 
 pipeline {
@@ -144,9 +177,10 @@ pipeline {
                         // Platform always comes from the build's own display name / description,
                         // since each build is for exactly one platform regardless of which
                         // upstream build number triggered it.
+                        // Use jsonStr() to safely handle net.sf.json.JSONNull values.
                         def platform = extractPlatformFromDisplayName(
-                            info.displayName?.trim() ?: '',
-                            info.description?.trim()  ?: ''
+                            jsonStr(info.displayName),
+                            jsonStr(info.description)
                         )
                         echo "  Matched build #${num} — platform: '${platform}'"
                         matchedBuilds << [number: num, platform: platform]
@@ -348,6 +382,17 @@ pipeline {
 // ---------------------------------------------------------------------------
 
 /**
+ * Safely convert a JSON field value to a plain Groovy String.
+ * Handles Groovy null, net.sf.json.JSONNull, and normal values.
+ * Returns empty string for null/JSONNull so callers never get a crash on .trim() etc.
+ */
+def jsonStr(def value) {
+    if (value == null) return ''
+    def s = value.toString()
+    return (s == 'null') ? '' : s.trim()
+}
+
+/**
  * Fetch a URL with curl and return a parsed JSON map.
  * @param useAuth  When true, passes -u "$JENKINS_AUTH" to curl. JENKINS_AUTH must already
  *                 be bound in the shell environment via withCredentials — it is never
@@ -394,16 +439,17 @@ def isBuildTriggeredBy(def buildInfo, String pipelineName, Set targetBuildNums, 
         if (allCauses.isEmpty()) break
 
         for (cause in allCauses) {
-            def proj      = cause?.upstreamProject?.toString() ?: ''
-            def upNumStr  = cause?.upstreamBuild?.toString()   ?: ''
-            def shortDesc = cause?.shortDescription?.toString() ?: ''
+            // Use jsonStr() to guard against net.sf.json.JSONNull on any field.
+            def proj      = jsonStr(cause?.upstreamProject)
+            def upNumStr  = jsonStr(cause?.upstreamBuild)
+            def shortDesc = jsonStr(cause?.shortDescription)
 
             // Direct structured match
-            if (proj.contains(pipelineName) && targetBuildNums.contains(upNumStr)) {
+            if (proj && proj.contains(pipelineName) && targetBuildNums.contains(upNumStr)) {
                 return true
             }
             // Text fallback in shortDescription
-            if (shortDesc.contains(pipelineName)) {
+            if (shortDesc && shortDesc.contains(pipelineName)) {
                 for (n in targetBuildNums) {
                     if (shortDesc.contains("build number ${n}") || shortDesc.contains("#${n}")) {
                         return true
@@ -414,14 +460,14 @@ def isBuildTriggeredBy(def buildInfo, String pipelineName, Set targetBuildNums, 
 
         // No match at this level — climb one level up using upstreamUrl (the correct
         // job path as Jenkins knows it) + upstreamBuild number.
-        def parentCause = allCauses.find { it?.upstreamUrl && it?.upstreamBuild != null }
+        // Guard: upstreamUrl and upstreamBuild must be non-null, non-"null" strings.
+        def parentCause = allCauses.find { jsonStr(it?.upstreamUrl) && jsonStr(it?.upstreamBuild) }
         if (!parentCause) break
 
-        def parentProj     = parentCause.upstreamProject?.toString() ?: ''
-        def parentBuildNum = parentCause.upstreamBuild.toString()
-        // upstreamUrl is already a valid relative Jenkins path, e.g.
-        // "job/build-scripts/job/jobs/job/release/job/jobs/job/jdk8u/job/jdk8u-release-linux-arm-temurin/"
-        def parentJobUrl   = parentCause.upstreamUrl.toString().replaceAll('/$', '')
+        def parentProj     = jsonStr(parentCause.upstreamProject)
+        def parentBuildNum = jsonStr(parentCause.upstreamBuild)
+        def parentJobUrl   = jsonStr(parentCause.upstreamUrl).replaceAll('/$', '')
+        if (!parentJobUrl || !parentBuildNum) break
         def parentApiUrl   = "${env.JENKINS_URL}${parentJobUrl}/${parentBuildNum}/api/json" +
             "?tree=actions%5Bcauses%5BupstreamProject,upstreamBuild,upstreamUrl,shortDescription%5D%5D"
         def parentInfo = fetchJson(parentApiUrl, "'${parentProj}' #${parentBuildNum}", useAuth)
