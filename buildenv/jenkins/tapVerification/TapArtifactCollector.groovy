@@ -67,15 +67,19 @@ pipeline {
             defaultValue: '',
             description: 'GitHub issue URL (e.g. https://github.com/adoptium/aqa-tests/issues/7612)'
         )
-        string(
+        credentials(
             name: 'JENKINS_CREDENTIAL',
             defaultValue: 'jenkins-bot-token',
-            description: 'Jenkins credential ID (username:token) for internal Jenkins REST API calls'
+            description: 'Username with password credential for internal Jenkins REST API calls (user + API token)',
+            credentialType: 'com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl',
+            required: true
         )
-        string(
+        credentials(
             name: 'GITHUB_CREDENTIAL',
             defaultValue: 'github-bot-token',
-            description: 'Jenkins credential ID for the GitHub API token'
+            description: 'Secret text credential containing the GitHub personal access token',
+            credentialType: 'org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl',
+            required: false
         )
     }
 
