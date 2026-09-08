@@ -90,6 +90,12 @@ pipeline {
 
     stages {
 
+        stage('Clean Workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+
         // -----------------------------------------------------------------------
         // Stage 1: Collect TAP artifacts from matching Jenkins builds
         // -----------------------------------------------------------------------
