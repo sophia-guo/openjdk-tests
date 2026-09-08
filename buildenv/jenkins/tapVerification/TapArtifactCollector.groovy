@@ -185,7 +185,6 @@ pipeline {
                 script {
                     def issueUrl    = params.GITHUB_ISSUE_URL?.trim()
                     def credId      = params.GITHUB_CREDENTIAL?.trim() ?: 'github-bot-token'
-                    def tapsDir     = 'TAPs'
 
                     if (!issueUrl) {
                         echo "GITHUB_ISSUE_URL not set — skipping Stage 2."
@@ -197,8 +196,6 @@ pipeline {
                     if (!m) { error "Cannot parse GITHUB_ISSUE_URL: '${issueUrl}'" }
                     def repoSlug    = m[0][1]
                     def issueNumber = m[0][2]
-
-                    sh "mkdir -p ${tapsDir}"
 
                     echo "=== Stage 2: collecting .tap.txt attachments for ${repoSlug}#${issueNumber} ==="
 
@@ -213,37 +210,35 @@ pipeline {
                             return readJSON(file: outFile)
                         }
 
-                        // Helper: download all .tap.txt attachments from a Markdown body.
-                        // Mirrors the logic in TapCollection.groovy: only processes lines
-                        // that are Markdown attachment links ending with ')' and contain
-                        // a github.com files URL. Filters to .tap.txt files only.
-                        def downloadTapTxt = { body ->
+                        // Helper: download all .tap.txt attachments from a Markdown body
+                        // into destDir. Mirrors TapCollection.groovy URL extraction logic.
+                        def downloadTapTxt = { body, destDir ->
                             if (!body) return
                             body.split(/\r?\n/).each { line ->
                                 if (!line.endsWith(')')) return
                                 if (!line.contains('https://github.com/user-attachments/files/') &&
                                     !line.contains("https://github.com/${repoSlug}/files/")) return
-                                // Extract URL from Markdown [name](url) — take whichever domain matches
                                 def urlStart = line.indexOf('(https://github.com/user-attachments/files/')
                                 if (urlStart < 0) urlStart = line.indexOf("(https://github.com/${repoSlug}/files/")
                                 if (urlStart < 0) return
                                 def url      = line.substring(urlStart + 1, line.lastIndexOf(')'))
                                 if (!url.endsWith('.tap.txt')) return
                                 def filename = url.split('/').last()
-                                echo "    Downloading ${filename} ..."
-                                sh "curl -Lsf -o '${tapsDir}/${filename}' '${url}'"
+                                echo "    Downloading ${filename} → ${destDir}/"
+                                sh "curl -Lsf -o '${destDir}/${filename}' '${url}'"
                             }
                         }
 
-                        // --- Main issue ---
-                        def apiBase  = "https://api.github.com/repos/${repoSlug}"
+                        def apiBase = "https://api.github.com/repos/${repoSlug}"
+
+                        // --- Main issue: download attachments into TAPs/main/ ---
                         def issue    = ghFetch("${apiBase}/issues/${issueNumber}", "main_issue")
                         def comments = ghFetch("${apiBase}/issues/${issueNumber}/comments", "main_comments")
+                        sh "mkdir -p TAPs/main"
+                        downloadTapTxt(issue.body, 'TAPs/main')
+                        comments.each { c -> downloadTapTxt(c.body, 'TAPs/main') }
 
-                        downloadTapTxt(issue.body)
-                        comments.each { c -> downloadTapTxt(c.body) }
-
-                        // --- Child issues linked in main issue description ---
+                        // --- Child issues: each gets its own platform subdir ---
                         def childNums = extractChildIssueNumbers(issue.body ?: '', repoSlug)
                         echo "Found ${childNums.size()} child issue(s): ${childNums}"
 
@@ -252,15 +247,77 @@ pipeline {
                             try {
                                 def childIssue    = ghFetch("${apiBase}/issues/${childNum}", "child_${idx}_issue")
                                 def childComments = ghFetch("${apiBase}/issues/${childNum}/comments", "child_${idx}_comments")
-                                downloadTapTxt(childIssue.body)
-                                childComments.each { c -> downloadTapTxt(c.body) }
+
+                                // Extract platform from child issue title ("... - x86-64_linux")
+                                // or fall back to body "Platform: x86-64_linux" line.
+                                def platform = extractPlatformFromIssueTitle(childIssue.title ?: '')
+                                if (!platform) platform = extractPlatformFromIssueBody(childIssue.body ?: '')
+                                if (!platform) platform = "child_${childNum}"
+                                echo "    Platform: '${platform}'"
+
+                                def destDir = "TAPs/${platform}"
+                                sh "mkdir -p '${destDir}'"
+                                downloadTapTxt(childIssue.body, destDir)
+                                childComments.each { c -> downloadTapTxt(c.body, destDir) }
+
+                                // Zip all downloaded .tap.txt files as grinder_<platform>.zip
+                                def tapCount = sh(script: "ls '${destDir}'/*.tap.txt 2>/dev/null | wc -l", returnStdout: true).trim().toInteger()
+                                if (tapCount > 0) {
+                                    sh "cd '${destDir}' && zip -j '../../grinder_${platform}.zip' *.tap.txt"
+                                    echo "    Created grinder_${platform}.zip (${tapCount} file(s))"
+                                } else {
+                                    echo "    No .tap.txt files found for platform '${platform}'"
+                                }
                             } catch (Exception e) {
-                                echo "  WARNING: Failed to fetch child issue #${childNum}: ${e.message}"
+                                echo "  WARNING: Failed to process child issue #${childNum}: ${e.message}"
                             }
                         }
                     }
 
-                    archiveArtifacts artifacts: "${tapsDir}/**", allowEmptyArchive: true
+                    archiveArtifacts artifacts: 'grinder_*.zip', allowEmptyArchive: true
+                }
+            }
+        }
+
+        // -----------------------------------------------------------------------
+        // Stage 3: Merge Jenkins artifacts + GitHub attachments per platform
+        // -----------------------------------------------------------------------
+        stage('Merge Artifacts') {
+            steps {
+                script {
+                    // Find all grinder_<platform>.zip files produced by Stage 2
+                    def grinderZips = findFiles(glob: 'grinder_*.zip')
+                    if (grinderZips.length == 0) {
+                        echo "No grinder zips found — skipping merge."
+                        return
+                    }
+
+                    grinderZips.each { gz ->
+                        // gz.name = "grinder_x86-64_linux.zip" → platform = "x86-64_linux"
+                        def platform   = gz.name.replaceFirst(/^grinder_/, '').replaceFirst(/\.zip$/, '')
+                        def jenkinsZip = "${platform}.zip"
+                        def mergeDir   = "merge_${platform}"
+
+                        sh "mkdir -p '${mergeDir}'"
+
+                        // Unzip grinder attachments
+                        sh "unzip -o '${gz.name}' -d '${mergeDir}'"
+
+                        // Unzip Jenkins artifacts if present for this platform
+                        def jenkinsZipExists = sh(script: "test -f '${jenkinsZip}'", returnStatus: true) == 0
+                        if (jenkinsZipExists) {
+                            sh "unzip -o '${jenkinsZip}' -d '${mergeDir}'"
+                            echo "  Merged Jenkins artifacts from ${jenkinsZip}"
+                        } else {
+                            echo "  No Jenkins artifact zip found for platform '${platform}' — skipping"
+                        }
+
+                        // Pack everything into <platform>.tar.gz
+                        sh "tar -czf '${platform}.tar.gz' -C '${mergeDir}' ."
+                        echo "  Created merged ${platform}.tar.gz"
+                    }
+
+                    archiveArtifacts artifacts: '*.tar.gz', allowEmptyArchive: true
                 }
             }
         }
@@ -403,8 +460,8 @@ def extractPlatformFromDisplayName(String displayName, String description) {
  * Parse child issue numbers from a GitHub issue body.
  *
  * Recognises lines containing:
- *   - #<N>
  *   - https://github.com/<owner>/<repo>/issues/<N>
+ *   - - #<N>  (task list items)
  *
  * Returns a de-duplicated list of issue number strings.
  */
@@ -421,4 +478,29 @@ def extractChildIssueNumbers(String body, String repoSlug) {
         shortM.each { nums << it[1] }
     }
     return nums as List
+}
+
+/**
+ * Extract platform from a child issue title.
+ * Convention: "Triage Automated Tests for August 2026 JDK8 - x86-64_linux"
+ * → last token after " - " → "x86-64_linux"
+ */
+def extractPlatformFromIssueTitle(String title) {
+    if (!title) return ''
+    def idx = title.lastIndexOf(' - ')
+    if (idx < 0) return ''
+    return title.substring(idx + 3).trim()
+}
+
+/**
+ * Extract platform from a child issue body.
+ * Looks for a line matching "Platform: <platform>"
+ */
+def extractPlatformFromIssueBody(String body) {
+    if (!body) return ''
+    for (line in body.split(/\r?\n/)) {
+        def m = (line =~ /^Platform:\s*(\S+)/)
+        if (m) return m[0][1].trim()
+    }
+    return ''
 }
