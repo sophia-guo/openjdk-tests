@@ -128,12 +128,12 @@ pipeline {
                         def buildApiUrl = "${env.JENKINS_URL}job/${jobPath}/${num}/api/json" +
                             "?tree=number,displayName,description,actions%5Bcauses%5BupstreamProject,upstreamBuild,upstreamUrl,shortDescription%5D%5D"
                         // AQA_Test_Pipeline_RELEASE is public — no auth needed here.
-                        def info = fetchJson(buildApiUrl, "'${testJob}' #${num}")
+                        def info = fetchJson(buildApiUrl, "'${testJob}' #${num}", false)
                         if (!info) return
 
                         // Gate: cause chain must match PIPELINE_NAME + one of BUILD_NUMBERS.
-                        // Auth is only needed when fetching the intermediate build-scripts parent build.
-                        if (!isBuildTriggeredBy(info, pipelineName, targetBuildNums, 3, env.JENKINS_AUTH)) return
+                        // useAuth=true so the parent build-scripts fetch uses $JENKINS_AUTH from env.
+                        if (!isBuildTriggeredBy(info, pipelineName, targetBuildNums, 3, true)) return
 
                         // Platform always comes from the build's own display name / description,
                         // since each build is for exactly one platform regardless of which
@@ -336,23 +336,17 @@ pipeline {
 
 /**
  * Fetch a URL with curl and return a parsed JSON map.
- * @param auth  Optional "user:token" string for Basic auth (-u flag).  Pass null to skip.
+ * @param useAuth  When true, passes -u "$JENKINS_AUTH" to curl. JENKINS_AUTH must already
+ *                 be bound in the shell environment via withCredentials — it is never
+ *                 interpolated into the Groovy string, eliminating the insecure-interpolation warning.
  * Returns null on failure.
  */
-def fetchJson(String url, String label, String auth = null) {
+def fetchJson(String url, String label, boolean useAuth = false) {
     try {
-        def json
-        if (auth) {
-            // Pass credentials via environment variable to avoid secret interpolation warning.
-            // curl reads CURL_AUTH from the environment; never interpolated into the script string.
-            json = sh(
-                script: "curl -sf --connect-timeout 10 -u \"\$CURL_AUTH\" '${url}'",
-                returnStdout: true,
-                env: ["CURL_AUTH=${auth}"]
-            ).trim()
-        } else {
-            json = sh(script: "curl -sf --connect-timeout 10 '${url}'", returnStdout: true).trim()
-        }
+        def script = useAuth
+            ? "curl -sf --connect-timeout 10 -u \"\$JENKINS_AUTH\" '${url}'"
+            : "curl -sf --connect-timeout 10 '${url}'"
+        def json = sh(script: script, returnStdout: true).trim()
         if (!json) { echo "Empty response for ${label}"; return null }
         return readJSON(text: json)
     } catch (Exception e) {
@@ -375,9 +369,9 @@ def fetchJson(String url, String label, String auth = null) {
  *   • Structured: upstreamProject contains pipelineName AND upstreamBuild is in targetBuildNums.
  *   • Text fallback (shortDescription): "Started by upstream project … build number 130"
  *
- * @param auth  "user:token" passed to curl -u for authenticated fetches of internal jobs.
+ * @param useAuth  When true, fetches of parent builds use $JENKINS_AUTH (must be bound via withCredentials).
  */
-def isBuildTriggeredBy(def buildInfo, String pipelineName, Set targetBuildNums, int maxDepth = 3, String auth = null) {
+def isBuildTriggeredBy(def buildInfo, String pipelineName, Set targetBuildNums, int maxDepth = 3, boolean useAuth = false) {
     def current = buildInfo
     for (int depth = 0; depth < maxDepth; depth++) {
         def actions = current?.actions ?: []
@@ -417,7 +411,7 @@ def isBuildTriggeredBy(def buildInfo, String pipelineName, Set targetBuildNums, 
         def parentJobUrl   = parentCause.upstreamUrl.toString().replaceAll('/$', '')
         def parentApiUrl   = "${env.JENKINS_URL}${parentJobUrl}/${parentBuildNum}/api/json" +
             "?tree=actions%5Bcauses%5BupstreamProject,upstreamBuild,upstreamUrl,shortDescription%5D%5D"
-        def parentInfo = fetchJson(parentApiUrl, "'${parentProj}' #${parentBuildNum}", auth)
+        def parentInfo = fetchJson(parentApiUrl, "'${parentProj}' #${parentBuildNum}", useAuth)
         if (!parentInfo) break
         current = parentInfo
     }
