@@ -290,36 +290,44 @@ pipeline {
         stage('Merge Artifacts') {
             steps {
                 script {
-                    // Find all grinder_<platform>.zip files produced by Stage 2
-                    def grinderZips = findFiles(glob: 'grinder_*.zip')
-                    if (grinderZips.length == 0) {
-                        echo "No grinder zips found — skipping merge."
+                    // Collect all platforms from both sources:
+                    //   - grinder_<platform>.zip  → GitHub attachments (Stage 2)
+                    //   - <platform>.zip           → Jenkins artifacts  (Stage 1)
+                    def platforms = [] as LinkedHashSet
+
+                    findFiles(glob: 'grinder_*.zip').each { f ->
+                        platforms << f.name.replaceFirst(/^grinder_/, '').replaceFirst(/\.zip$/, '')
+                    }
+                    findFiles(glob: '*.zip').findAll { !it.name.startsWith('grinder_') }.each { f ->
+                        platforms << f.name.replaceFirst(/\.zip$/, '')
+                    }
+
+                    if (platforms.isEmpty()) {
+                        echo "No zip files found — skipping merge."
                         return
                     }
 
-                    grinderZips.each { gz ->
-                        // gz.name = "grinder_x86-64_linux.zip" → platform = "x86-64_linux"
-                        def platform   = gz.name.replaceFirst(/^grinder_/, '').replaceFirst(/\.zip$/, '')
-                        def jenkinsZip = "${platform}.zip"
-                        def mergeDir   = "merge_${platform}"
+                    platforms.each { platform ->
+                        def grinderZip  = "grinder_${platform}.zip"
+                        def jenkinsZip  = "${platform}.zip"
+                        def mergeDir    = "merge_${platform}"
+                        def haGrinder   = sh(script: "test -f '${grinderZip}'",  returnStatus: true) == 0
+                        def hasJenkins  = sh(script: "test -f '${jenkinsZip}'",  returnStatus: true) == 0
 
                         sh "mkdir -p '${mergeDir}'"
 
-                        // Unzip grinder attachments
-                        sh "unzip -o '${gz.name}' -d '${mergeDir}'"
-
-                        // Unzip Jenkins artifacts if present for this platform
-                        def jenkinsZipExists = sh(script: "test -f '${jenkinsZip}'", returnStatus: true) == 0
-                        if (jenkinsZipExists) {
+                        if (haGrinder) {
+                            sh "unzip -o '${grinderZip}' -d '${mergeDir}'"
+                            echo "  Unpacked grinder attachments for '${platform}'"
+                        }
+                        if (hasJenkins) {
                             sh "unzip -o '${jenkinsZip}' -d '${mergeDir}'"
-                            echo "  Merged Jenkins artifacts from ${jenkinsZip}"
-                        } else {
-                            echo "  No Jenkins artifact zip found for platform '${platform}' — skipping"
+                            echo "  Unpacked Jenkins artifacts for '${platform}'"
                         }
 
                         // Pack everything into <platform>.tar.gz
                         sh "tar -czf '${platform}.tar.gz' -C '${mergeDir}' ."
-                        echo "  Created merged ${platform}.tar.gz"
+                        echo "  Created ${platform}.tar.gz (grinder=${haGrinder}, jenkins=${hasJenkins})"
                     }
 
                     archiveArtifacts artifacts: '*.tar.gz', allowEmptyArchive: true
