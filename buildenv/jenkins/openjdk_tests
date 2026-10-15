@@ -329,7 +329,7 @@ timestamps{
         // Initialize testStatus/jobStatus here — before any node acquisition — so the
         // catch block always has valid values even if the job is aborted in the queue
         // before runTest() (which also sets them) is ever entered.
-        env.testStatus = 'NOT_RUN'
+        env.testStatus = 'SUCCESS'
         env.jobStatus  = 'SUCCESS'
         if (PLATFORM_MAP.containsKey(params.PLATFORM)) {
             env.EXTRA_OPTIONS = params.EXTRA_OPTIONS ? params.EXTRA_OPTIONS : ""
@@ -512,11 +512,11 @@ timestamps{
             }
             env.SETUP_LABEL = params.SETUP_LABEL ?: "ci.role.test"
             if (env.PARALLEL == 'None' && env.testStatus == 'UNSTABLE') {
-                jenkinsfile.(env.testStatus)
+                jenkinsfile.triggerRerunJob(env.testStatus, currentBuild.result)
             } else if ( env.PARALLEL != 'None' && currentBuild.result != 'FAILURE') {
                 def parallelResults = jenkinsfile.runParallelTests()
                 if ( parallelResults.testStatus != 'SUCCESS' ) {
-                    jenkinsfile.triggerRerunJob(parallelResults.testStatus, parallelResults.jobParams)
+                    jenkinsfile.triggerRerunJob(parallelResults.jobStatus, parallelResults.testStatus, parallelResults.jobParams)
                 } else {
                     currentBuild.result = env.jobStatus
                     jenkinsfile.annotateInfraFailure('SUCCESS', env.jobStatus)
@@ -642,7 +642,7 @@ def runTest() {
         // the literal string "null", which passes the `if (env.testStatus)` truthiness
         // check and renders as '? null' in getTestStatusLabel().
         if ((env.ITER_COUNT ?: '0').toInteger() == 0 && env.testStatus == 'SUCCESS') {
-            env.testStatus = 'NOT_RUN'
+            env.testStatus = 'FAILURE'
         }
         env.jobStatus = currentBuild.result
         // Write TEST EXECUTE STATUS to the build description when post() was never reached

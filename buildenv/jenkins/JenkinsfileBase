@@ -134,7 +134,7 @@ def setupEnv() {
 	env.PARALLEL = env.PARALLEL ? params.PARALLEL : "None"
 	env.LIGHT_WEIGHT_CHECKOUT = (params.LIGHT_WEIGHT_CHECKOUT == false) ? params.LIGHT_WEIGHT_CHECKOUT : true
 	env.GENERATE_JOBS = params.GENERATE_JOBS ?: false
-	env.testStatus = 'NO_RUN'
+	env.testStatus = 'SUCCESS'
 	env.jobStatus = 'SUCCESS'
 
 	if (JOB_NAME.contains("Grinder")) {
@@ -914,7 +914,7 @@ def runTest( ) {
 		}
 		// Check if any iterations ran and accumulated results
 		if (env.ITER_COUNT.toInteger() == 0) {
-			env.testStatus = 'NO_RUN'
+			env.testStatus = 'FAILURE'
 			env.jobStatus = 'FAILURE'
 			echo 'Could not find test result, set build result to FAILURE.'
 			def summary = createBadgeSummary("symbol-close-circle-outline plugin-ionicons-api")
@@ -1042,7 +1042,6 @@ def getTestStatusLabel(status) {
 		'UNSTABLE' : [color: '#b8860b', icon: '⚠', label: 'UNSTABLE'],
 		'FAILURE'  : [color: 'red',     icon: '✘', label: 'FAILURE'],
 		'ABORTED'  : [color: 'grey',    icon: '⊘', label: 'ABORTED'],
-		'NOT_RUN': [color: 'grey',    icon: '—', label: 'NOT_RUN'],
 	]
 	def s = styleMap[status] ?: [color: 'grey', icon: '?', label: status]
 	return "<font color='${s.color}'><big><b>${s.icon} ${s.label}</b></big></font>"
@@ -1056,7 +1055,6 @@ def getTestStatusBadgeUrl(status) {
 		'UNSTABLE' : [text: 'unstable', color: 'yellow'],
 		'FAILURE'  : [text: 'failing',  color: 'red'],
 		'ABORTED'  : [text: 'aborted',  color: 'lightgrey'],
-		'NOT_RUN': [text: 'not_run',  color: 'lightgrey'],
 	]
 	def entry = statusMap[status] ?: [text: 'unknown', color: 'lightgrey']
 	return "${env.JENKINS_URL}buildStatus/icon?subject=tests&status=${entry.text}&color=${entry.color}"
@@ -1080,10 +1078,10 @@ def post(output_name) {
 		// (cleanWs, timeout) is applied later in openjdk_tests' catch block which then patches
 		// the description via annotateInfraFailure().
 		// If setupEnv() set testStatus='SUCCESS' but no test results were collected
-		// (ITER_COUNT == 0), treat it as NOT_RUN — tests never actually ran.
+		// (ITER_COUNT == 0), treat it as FAILURE — tests never actually ran.
 		def displayStatus = env.testStatus
 		if (displayStatus == 'SUCCESS' && (env.ITER_COUNT ?: '0').toInteger() == 0) {
-			displayStatus = 'NOT_RUN'
+			displayStatus = 'FAILURE'
 		}
 		currentBuild.description = "TEST EXECUTE STATUS: ${getTestStatusDescription(displayStatus)}<br/><br/>" + (currentBuild.description ?: "")
 		echo "TEST EXECUTE STATUS: ${displayStatus} (job status: ${env.jobStatus})"
@@ -1703,7 +1701,7 @@ def generateJob (newJobs, childTest, testJobName) {
  * - rerun due to failed test(s) - RERUN_ITERATIONS > 0 and list of failed test target(s) (i.e., env.FAILED_TESTS cannot be empty)
  * - rerun due to test job in FAILURE state - RERUN_FAILURE is true and rerunTestJobParams cannot be empty
  * If the JOB_NAME contains _rerun, _testList_ or _iteration_, rerun job will not be triggered at the same level.
- * originalStatus must be env.testStatus (test-only outcome). currentBuild.result is set to env.jobStatus
+ * originalTestStatus must be env.testStatus (test-only outcome). currentBuild.result is set to env.jobStatus
  * (worst of test + infra) so that infrastructure failures are visible but rerun decisions are driven
  * purely by test outcomes.
 */
@@ -1853,10 +1851,10 @@ def archiveChildJobTap(childJobs, originalTestStatus = 'SUCCESS', originalJobSta
 					// Also guard against the literal string "null" — Jenkins env vars are always
 					// strings so assigning null to env.testStatus produces "null" not null.
 					def rawChildTestResult = cjob.getBuildVariables()["testStatus"]
-					def childTestResult = (rawChildTestResult && rawChildTestResult != 'null') ? rawChildTestResult : 'NOT_RUN'
+					def childTestResult = (rawChildTestResult && rawChildTestResult != 'null') ? rawChildTestResult : 'SUCCESS'
 					echo "${name} #${buildId} completed with job status ${childJobResult}, test status ${childTestResult}"
 					// track FAILURE job childTestJobParams if its test outcome was FAILURE (not just infra)
-					if ( originalStatus == "SUCCESS" && childTestResult == "NOT_RUN" ) {
+					if ( originalTestStatus == "SUCCESS" && childTestResult == "FAILURE" ) {
 						childTestJobParams << parallelTestParams.findAll {it.key == name}
 					}
 					if (isWorseThan( childJobResult, currentJobStatus)) {
@@ -1918,7 +1916,7 @@ def archiveChildJobTap(childJobs, originalTestStatus = 'SUCCESS', originalJobSta
 			env.jobStatus = currentStatus
 			if (currentTestStatus != "SUCCESS") {
 				if ( buildPaths!= "" ) {
-					if ( originalStatus == "SUCCESS" ) {
+					if ( originalTestStatus == "SUCCESS" ) {
 						getFailedAndCustomizedTest(buildPaths[0..-2])
 					} else {
 						addFailedTestsGrinderLink(buildPaths[0..-2])
@@ -1959,7 +1957,7 @@ def isWorseThan(String resultA, String resultB) {
 //   - Show summary badge + inline "⚠ job degraded to X" warning.
 //   - env.testStatus preserved.
 //
-// Case B — testStatus is FAILURE, ABORTED, or NOT_RUN (tests did not complete usefully):
+// Case B — testStatus is FAILURE, ABORTED:
 //   - Tests never produced a meaningful result; jobStatus is the true outcome.
 //   - Rewrite description badge to show jobStatus — no degradation warning needed.
 //   - env.testStatus updated to jobStatus.
